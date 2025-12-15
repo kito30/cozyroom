@@ -1,27 +1,44 @@
 'use server';
 import { redirect } from 'next/navigation';
+
 export async function loginAction(formData: FormData) {
-  console.log(formData);
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  // Validate credentials (call Supabase or your Nest endpoint)
+  
+  let res: Response;
+  
   try {
-    const res = await fetch('http://localhost:3001/login', {
+    res = await fetch('http://localhost:3001/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) {
-          const errorText = await res.text();
-          console.error('Login failed:', errorText);
-          throw new Error('Invalid credentials');
-        }
-        
-        redirect('/profile');
-      } catch (error) {
-        console.error('Fetch error:', error);
-        throw new Error('Failed to connect to server. Is the backend running?');
+  } catch {
+    // Network/connection error
+    const errorMessage = 'Failed to connect to server. Please try again.';
+    redirect(`/login?error=${encodeURIComponent(errorMessage)}`);
+  }
+  
+  if (!res.ok) {
+    let errorMessage = 'Invalid email or password';
+    try {
+      const errorText = await res.text();
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
       }
+    } catch {
+
+    }
+    redirect(`/login?error=${encodeURIComponent(errorMessage)}`);
+  }
+  
+  await res.json(); // Parse response (contains user/session data)
+  // Optionally store token here if needed
+  
+  redirect('/profile');
 }
