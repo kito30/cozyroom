@@ -16,9 +16,7 @@ export async function loginAction(formData: FormData) {
       body: JSON.stringify({ email, password }),
     });
   } catch {
-    // Network/connection error
-    const errorMessage = 'Failed to connect to server. Please try again.';
-    redirect(`/login?error=${encodeURIComponent(errorMessage)}`);
+    throw new Error('Failed to connect to server. Please try again.');
   }
   
   if (!res.ok) {
