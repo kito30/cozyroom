@@ -1,19 +1,18 @@
 'use client';
 import { loginAction } from './actions';
 import { useFormStatus } from 'react-dom';
-import { useSearchParams } from 'next/navigation';
+import { useActionState } from 'react';
 import { Suspense } from 'react';
 
 function LoginForm() {
-  const searchParams = useSearchParams();
-  const error = searchParams.get('error');
+  const [state, formAction] = useActionState(loginAction, null);
 
   return (
     <div className="flex gap-4 justify-center items-center h-screen">
-      <form action={loginAction} className="flex flex-col gap-4 w-full md:w-[40%] lg:w-[35%]">
-        {error && (
+      <form action={formAction} className="flex flex-col gap-4 w-full md:w-[40%] lg:w-[35%]">
+        {state?.error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <span className="block sm:inline">{decodeURIComponent(error)}</span>
+            <span className="block sm:inline">{state.error}</span>
           </div>
         )}
         <input 

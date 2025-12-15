@@ -1,10 +1,12 @@
 'use server';
 import { redirect } from 'next/navigation';
 
-export async function loginAction(formData: FormData) {
+export async function loginAction(
+  prevState: { error?: string } | null,
+  formData: FormData
+) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  
   let res: Response;
   
   try {
@@ -16,27 +18,18 @@ export async function loginAction(formData: FormData) {
       body: JSON.stringify({ email, password }),
     });
   } catch {
-    throw new Error('Failed to connect to server. Please try again.');
+    // Return error state instead of redirecting
+    return { error: 'Failed to connect to server. Please try again.' };
   }
   
   if (!res.ok) {
     let errorMessage = 'Invalid email or password';
-    try {
-      const errorText = await res.text();
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.message || errorJson.error || errorMessage;
-      } catch {
-        errorMessage = errorText || errorMessage;
-      }
-    } catch {
-
-    }
-    redirect(`/login?error=${encodeURIComponent(errorMessage)}`);
+    const errorText = await res.text();
+    const errorJson = JSON.parse(errorText);
+    errorMessage = errorJson.message || errorJson.error || errorMessage;
+    return { error: errorMessage };
   }
   
-  await res.json(); // Parse response (contains user/session data)
-  // Optionally store token here if needed
-  
-  redirect('/profile');
+  await res.json();
+  redirect('/profile'); // Only redirect on success
 }

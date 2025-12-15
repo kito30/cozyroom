@@ -1,11 +1,11 @@
 import { Body, Controller, Headers, Post, BadRequestException, UnauthorizedException, Get } from '@nestjs/common';
 import { createSupabaseClient } from 'src/utils/supabase/client';
-import { checkAuth } from 'src/auth/auth.helper';
+import { UserService } from '../services/user.service';
 
 @Controller()
 export class UserController {
-    private supabase = createSupabaseClient()
-
+    constructor(private readonly userService: UserService) {}
+    private supabase = createSupabaseClient();
     @Post('login')
     async login (@Body() body: {email: string; password: string}) {
         const { email, password } = body;
@@ -23,7 +23,7 @@ export class UserController {
     @Get('auth')
     async profile(@Headers('authorization') auth: string) {
         const token = auth?.replace('Bearer ', '');
-        const user = await checkAuth(token);
+        const user = await this.userService.checkAuth(token);
         if (!user) {
             throw new UnauthorizedException('Invalid token');
         }
