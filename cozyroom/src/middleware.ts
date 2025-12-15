@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PROTECTED_PATHS = ["/home"];
+const PROTECTED_PATHS = ["/"];
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -28,6 +28,7 @@ export default async function middleware(request: NextRequest) {
         cookie: request.headers.get("cookie") || "",
       },
     });
+    console.log(res);
   } catch (error) {
     // If backend is down or request fails, don't crash the app
     console.error("Auth check failed in middleware:", error);
@@ -44,5 +45,7 @@ export default async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/home/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+  ],
 };
