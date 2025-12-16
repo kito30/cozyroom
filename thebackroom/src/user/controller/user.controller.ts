@@ -1,4 +1,5 @@
-import { Body, Controller, Headers, Post, BadRequestException, UnauthorizedException, Get } from '@nestjs/common';
+import { Body, Controller, Headers, Post, BadRequestException, UnauthorizedException, Get, Res } from '@nestjs/common';
+import type { Response } from 'express'
 import { createSupabaseClient } from 'src/utils/supabase/client';
 import { UserService } from '../services/user.service';
 
@@ -7,7 +8,9 @@ export class UserController {
     constructor(private readonly userService: UserService) {}
     private supabase = createSupabaseClient();
     @Post('login')
-    async login (@Body() body: {email: string; password: string}) {
+    async login (
+        @Body() body: {email: string; password: string},
+        @Res({passthrough: true}) res: Response) {
         const { email, password } = body;
 
         const { data, error } = await this.supabase.auth.signInWithPassword({
@@ -17,8 +20,12 @@ export class UserController {
         if (error) {
             throw new BadRequestException(error.message ?? 'Invalid credentials');
         }
-
-        return data;
+        const token = data.session.access_token 
+        res.cookie('token', token , {
+            httpOnly: true,
+            secure: false, // change to true when in http please
+            sameSite: 'lax',
+        })
     }
     @Get('auth')
     async profile(@Headers('authorization') auth: string) {
