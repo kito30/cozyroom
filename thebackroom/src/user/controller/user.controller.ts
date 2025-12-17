@@ -1,16 +1,14 @@
-import { Body, Controller, Headers, Post, BadRequestException, UnauthorizedException, Get, Res } from '@nestjs/common';
-import type { Response } from 'express'
+import { Body, Controller, Post, BadRequestException, UnauthorizedException, Get, Req } from '@nestjs/common';
+import type { Request} from 'express'
 import { createSupabaseClient } from 'src/utils/supabase/client';
 import { UserService } from '../services/user.service';
-
 @Controller()
 export class UserController {
     constructor(private readonly userService: UserService) {}
     private supabase = createSupabaseClient();
     @Post('login')
     async login (
-        @Body() body: {email: string; password: string},
-        @Res({passthrough: true}) res: Response) {
+        @Body() body: {email: string; password: string}) {
         const { email, password } = body;
 
         const { data, error } = await this.supabase.auth.signInWithPassword({
@@ -20,22 +18,27 @@ export class UserController {
         if (error) {
             throw new BadRequestException(error.message ?? 'Invalid credentials');
         }
-        const token = data.session.access_token 
-        res.cookie('token', token , {
-            httpOnly: true,
-            secure: false, // change to true when in http please
-            sameSite: 'lax',
-        })
+        const { access_token, refresh_token, expires_in } = data.session;
+        return { ok: true, user: data.user, access_token: access_token, refresh_token: refresh_token, expires_in: expires_in }
     }
     @Get('auth')
-    async profile(@Headers('authorization') auth: string) {
-        const token = auth?.replace('Bearer ', '');
-        const user = await this.userService.checkAuth(token);
-        if (!user) {
-            throw new UnauthorizedException('Invalid token');
-        }
-        return {email: user.email, id: user.id};
+    async profile(@Req() req: Request) {
+        
+        const token = req.cookies['token'] as string | undefined;
 
+        console.log('All Cookies:', req.cookies);
+        console.log('Token:', token);
+        
+        if (!token) {
+            throw new UnauthorizedException('No session')
+        }
+
+        const { data, error } = await this.supabase.auth.getUser(token);
+        if (error) {
+            throw new UnauthorizedException('Invalid token')
+        }
+
+        return { user: data.user }
     }
         
 }
