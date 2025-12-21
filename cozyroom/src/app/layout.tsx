@@ -1,5 +1,7 @@
 import Nav from './nav';
 import './globals.css';
+import { AuthProvider } from '../providers/AuthProvider';
+
 export default function RootLayout({
   children,
 }: {
@@ -8,8 +10,10 @@ export default function RootLayout({
   return (
     <html>
       <body>
-        <Nav />
-        {children}
+        <AuthProvider>
+          <Nav />
+          {children}
+        </AuthProvider>
         </body>
     </html>
   )

@@ -23,10 +23,7 @@ export class UserController {
     }
     @Get('auth')
     async profile(@Req() req: Request) {
-        
         const token = req.cookies['token'] as string | undefined;
-
-        console.log('All Cookies:', req.cookies);
         console.log('Token:', token);
         
         if (!token) {

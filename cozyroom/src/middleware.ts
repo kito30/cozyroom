@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const PROTECTED_PATHS = ["/"];
-
-const PUBLIC_PATHS = ["/login", "/register", "/forgot-password"];
+import { isPublicPath, ROUTES } from "./config/routes";
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Only run auth check on protected paths
-  if(PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
+  if(isPublicPath(pathname)) {
     return NextResponse.next();
   }
   const token = request.cookies.get("token");
@@ -37,7 +34,7 @@ export default async function middleware(request: NextRequest) {
 }
 
 function redirectToLogin(request: NextRequest) {
-  const loginUrl = new URL("/login", request.url);
+  const loginUrl = new URL(ROUTES.login, request.url);
   loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
   return NextResponse.redirect(loginUrl);
 }
