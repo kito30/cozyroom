@@ -1,6 +1,5 @@
-'use server';
+'use client';
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import type { LoginResponse } from '@/src/types/login_response';
 
 export type LoginState = { error?: string | string[] } | null;
@@ -20,6 +19,7 @@ export async function loginAction(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password }),
+      credentials: 'include'
     });
     data = await res.json();
   } catch {
@@ -28,26 +28,6 @@ export async function loginAction(
   if (!res.ok) {
     const errorMessage = data.message || data.error || 'Invalid email or password';
     return { error: errorMessage };
-  }
-  const cookieStore = await cookies();
-  
-  if (data.access_token) {
-      cookieStore.set('token', data.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: data.expires_in, 
-        path: '/',
-      }); 
-  }
-  if (data.refresh_token) {
-      cookieStore.set('refresh_token', data.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 30 * 24 * 60 * 60, 
-        path: '/',
-      }); 
   }
   redirect('/profile'); 
 }

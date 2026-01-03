@@ -27,8 +27,12 @@ export class UserController {
                 loginResponse.expires_in
             );
         }
-        
-        // Return response without tokens (security best practice)
+        else {
+            return {
+                ok: false,
+                error: 'Failed to login',
+            };
+        }
         return {
             ok: loginResponse.ok,
             user: loginResponse.user,
