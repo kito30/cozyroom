@@ -1,21 +1,52 @@
-import { Body, Controller, Post, Get, Req } from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, Post, Get, Req, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { UserService } from '../services/user.service';
+import { CookieService } from '../services/cookie.service';
 
 @Controller()
 export class UserController {
-    constructor(private readonly userService: UserService) {}
+    constructor(
+        private readonly userService: UserService,
+        private readonly cookieService: CookieService
+    ) {}
 
     @Post('login')
-    async login(@Body() body: { email: string; password: string }) {
+    async login(
+        @Body() body: { email: string; password: string },
+        @Res({ passthrough: true }) res: Response
+    ) {
         const { email, password } = body;
-        return await this.userService.login(email, password);
+        const loginResponse = await this.userService.login(email, password);
+        
+        // Set cookies using cookie service
+        if (loginResponse.access_token && loginResponse.refresh_token) {
+            this.cookieService.setAuthCookies(
+                res,
+                loginResponse.access_token,
+                loginResponse.refresh_token,
+                loginResponse.expires_in
+            );
+        }
+        
+        // Return response without tokens (security best practice)
+        return {
+            ok: loginResponse.ok,
+            user: loginResponse.user,
+        };
     }
 
     @Get('auth')
     async profile(@Req() req: Request) {
         const token = req.cookies['token'] as string | undefined;
-        const userWithProfile = await this.userService.getUserWithProfile(token || '');
-        return { user: userWithProfile };
+        if (!token) {
+            return { user: null };
+        }
+        
+        const user = await this.userService.getAuth(token);
+        const profile = await this.userService.getProfile(user.id);
+        
+        return { 
+            user: profile ? { ...user, ...profile } : user 
+        };
     }
 }
