@@ -1,7 +1,13 @@
-import { Body, Controller, Post, Get, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Get, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import type { User } from '@supabase/supabase-js';
 import { UserService } from '../services/user.service';
 import { CookieService } from '../services/cookie.service';
+import { AuthGuard } from '../guards/auth.guard';
+
+interface AuthenticatedRequest extends Request {
+    user: User;
+}
 
 @Controller()
 export class UserController {
@@ -35,17 +41,24 @@ export class UserController {
     }
 
     @Get('auth')
-    async profile(@Req() req: Request) {
+    async checkAuth(@Req() req: Request) {
         const token = req.cookies['token'] as string | undefined;
         if (!token) {
             return { user: null };
         }
-        
         const user = await this.userService.getAuth(token);
+        return { user };
+    }
+    @Get('profile')
+    @UseGuards(AuthGuard)
+    async getProfile(@Req() req: AuthenticatedRequest) {
+        // User is already validated by AuthGuard and attached to request
+        const user = req.user;
         const profile = await this.userService.getProfile(user.id);
         
-        return { 
-            user: profile ? { ...user, ...profile } : user 
+        return {
+            ...user,
+            ...profile,
         };
     }
 }

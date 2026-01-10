@@ -52,7 +52,7 @@ export class UserService {
     }
     async getProfile(userId: string): Promise<UserWithProfile | null> {
         const respond = await this.supabase
-            .from('profile')
+            .from('user_profiles')
             .select('*')
             .eq('id', userId)
             .single();
