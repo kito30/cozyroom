@@ -9,6 +9,8 @@ export class CookieService {
         refreshToken: string,
         expiresIn: number
     ): void {
+        console.log('[CookieService] Setting auth cookies, expiresIn:', expiresIn);
+        
         res.cookie('token', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -24,5 +26,7 @@ export class CookieService {
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
             path: '/',
         });
+        
+        console.log('[CookieService] Cookies queued for response');
     }
 }

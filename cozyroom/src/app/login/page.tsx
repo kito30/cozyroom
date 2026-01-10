@@ -100,7 +100,6 @@ export default function Page() {
     </Suspense>
   );
 }
-
 const Submit = () => {
   const { pending } = useFormStatus();
   return (

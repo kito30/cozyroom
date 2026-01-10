@@ -11,24 +11,30 @@ export default async function middleware(request: NextRequest) {
   const token = request.cookies.get("token");
 
   if(!token) {
+    console.log("[Middleware] No token found for path:", pathname);
     return redirectToLogin(request);
   }
   try {
     // Call backend /auth to validate current auth state
+    // Pass all cookies to the backend
     const res = await fetch("http://localhost:3001/auth", {
-      // TODO: once you store a token in a cookie, forward it here (e.g. Authorization header)
       method: "GET",
       headers: {
         cookie: request.headers.get("cookie") || "",
       },
+      credentials: "include",
     });
+    
+    console.log("[Middleware] Auth check for", pathname, "- Status:", res.status);
+    
     if(res.status === 401) {
+      console.log("[Middleware] Unauthorized, redirecting to login");
       return redirectToLogin(request);
     }
     return NextResponse.next();
   } catch (error) {
     // If backend is down or request fails, don't crash the app
-    console.error("Auth check failed in middleware:", error);
+    console.error("[Middleware] Auth check failed:", error);
     return redirectToLogin(request);
   }
 }
