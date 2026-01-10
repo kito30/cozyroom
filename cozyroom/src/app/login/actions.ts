@@ -1,4 +1,4 @@
-'use client';
+'use server';
 import { redirect } from 'next/navigation';
 import type { LoginResponse } from '@/src/types/login_response';
 
@@ -10,6 +10,12 @@ export async function loginAction(
 ): Promise<LoginState> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
+
+  // Basic validation
+  if (!email || !password) {
+    return { error: 'Email and password are required' };
+  }
+
   let res: Response;
   let data: LoginResponse; 
   try {
@@ -22,12 +28,16 @@ export async function loginAction(
       credentials: 'include'
     });
     data = await res.json();
-  } catch {
+  } catch (error) {
+    console.error('Login error:', error);
     return { error: 'Failed to connect to server. Please try again.' };
   }
+
   if (!res.ok) {
     const errorMessage = data.message || data.error || 'Invalid email or password';
     return { error: errorMessage };
   }
+
+  // Backend has set cookies, redirect to profile
   redirect('/profile'); 
 }

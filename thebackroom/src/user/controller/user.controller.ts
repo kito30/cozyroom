@@ -16,41 +16,59 @@ export class UserController {
         @Res({ passthrough: true }) res: Response
     ) {
         const { email, password } = body;
-        const loginResponse = await this.userService.login(email, password);
         
-        // Set cookies using cookie service
-        if (loginResponse.access_token && loginResponse.refresh_token) {
-            this.cookieService.setAuthCookies(
-                res,
-                loginResponse.access_token,
-                loginResponse.refresh_token,
-                loginResponse.expires_in
-            );
-        }
-        else {
+        try {
+            const loginResponse = await this.userService.login(email, password);
+            
+            // Set httpOnly cookies in the response
+            if (loginResponse.access_token && loginResponse.refresh_token) {
+                this.cookieService.setAuthCookies(
+                    res,
+                    loginResponse.access_token,
+                    loginResponse.refresh_token,
+                    loginResponse.expires_in
+                );
+                
+                // Return user info (NOT tokens - they're in cookies)
+                return {
+                    ok: true,
+                    user: loginResponse.user,
+                };
+            }
+            
+            res.status(400);
             return {
                 ok: false,
-                error: 'Failed to login',
+                error: 'Failed to generate session tokens',
+            };
+        } catch (error) {
+            res.status(401);
+            return {
+                ok: false,
+                error: error instanceof Error ? error.message : 'Invalid credentials',
             };
         }
-        return {
-            ok: loginResponse.ok,
-            user: loginResponse.user,
-        };
     }
 
     @Get('auth')
-    async profile(@Req() req: Request) {
+    async profile(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
         const token = req.cookies['token'] as string | undefined;
+        
         if (!token) {
+            res.status(401);
             return { user: null };
         }
         
-        const user = await this.userService.getAuth(token);
-        const profile = await this.userService.getProfile(user.id);
-        
-        return { 
-            user: profile ? { ...user, ...profile } : user 
-        };
+        try {
+            const user = await this.userService.getAuth(token);
+            const profile = await this.userService.getProfile(user.id);
+            
+            return { 
+                user: profile ? { ...user, ...profile } : user 
+            };
+        } catch (error) {
+            res.status(401);
+            return { user: null };
+        }
     }
 }
