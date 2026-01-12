@@ -42,12 +42,21 @@ export class UserController {
 
     @Get('auth')
     async checkAuth(@Req() req: Request) {
+        // Soft check endpoint - always returns 200, with user or null
+        // Used by frontend to check auth state without throwing errors
         const token = req.cookies['token'] as string | undefined;
+        
         if (!token) {
             return { user: null };
         }
-        const user = await this.userService.getAuth(token);
-        return { user };
+        
+        try {
+            const user = await this.userService.getAuth(token);
+            return { user };
+        } catch {
+            // Token invalid/expired - return null instead of throwing
+            return { user: null };
+        }
     }
     @Get('profile')
     @UseGuards(AuthGuard)

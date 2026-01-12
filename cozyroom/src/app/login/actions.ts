@@ -1,6 +1,7 @@
 'use client';
 import { redirect } from 'next/navigation';
 import type { LoginResponse } from '@/src/types/login_response';
+import { getApiUrl } from '@/src/config/api';
 
 export type LoginState = { error?: string | string[] } | null;
 
@@ -18,7 +19,7 @@ export async function loginAction(
   let res: Response;
   let data: LoginResponse; 
   try {
-    res = await fetch('http://localhost:3001/login', {
+    res = await fetch(getApiUrl('login'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

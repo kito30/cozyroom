@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isPublicPath, ROUTES } from "./config/routes";
+import { getApiUrl } from "./config/api";
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,7 +18,7 @@ export default async function middleware(request: NextRequest) {
   try {
     // Call backend /auth to validate current auth state
     // Pass all cookies to the backend
-    const res = await fetch("http://localhost:3001/auth", {
+    const res = await fetch(getApiUrl('auth'), {
       method: "GET",
       headers: {
         cookie: request.headers.get("cookie") || "",

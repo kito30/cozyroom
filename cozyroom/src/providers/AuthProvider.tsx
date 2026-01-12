@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { usePathname, useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { isPublicPath, ROUTES } from "../config/routes";
+import { getApiUrl } from "../config/api";
 
 interface AuthContextType {
     user: User | null;
@@ -29,10 +30,16 @@ export function AuthProvider({children}: {children: ReactNode}) {
     useEffect(()=> {
         const checkAuth = async () => {
         try {
-            const res = await fetch("http://localhost:3001/auth", {
+            const apiUrl = getApiUrl('auth');
+            console.log('[AuthProvider] Fetching from:', apiUrl);
+            const res = await fetch(apiUrl, {
                 method: "GET",
-                credentials: 'include'
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             });
+            
             if(res.ok) { 
                 const data = await res.json();
                 setUser(data.user);
@@ -44,8 +51,12 @@ export function AuthProvider({children}: {children: ReactNode}) {
         }
         catch(error) {
             console.error("Error checking auth:", error);
+            // Don't redirect on network errors - might be backend down
             setUser(null);
-            router.push(ROUTES.login);
+            // Only redirect if we're on a protected path
+            if(!isPublicPath(pathname)) {
+                router.push(ROUTES.login);
+            }
         } finally {
             setIsLoading(false);
         }
