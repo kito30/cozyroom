@@ -1,11 +1,6 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 const Nav = async () => {
-
-    const cookieStore = await cookies();
-
-    const token = cookieStore.get("token")?.value;
-    
+   
     return (
         <header className="sticky top-0 z-30 border-b border-slate-800/70 bg-slate-950/80 backdrop-blur">
         <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">

@@ -15,6 +15,15 @@ export interface LoginResponse {
     expires_in: number;
 }
 
+export interface SignUpResponse {
+    ok: boolean;
+    user: User;
+    requiresConfirmation?: boolean;
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+}
+
 export interface UserWithProfile {
     id: string;
     email: string;
