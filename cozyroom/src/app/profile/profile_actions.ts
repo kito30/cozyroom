@@ -1,11 +1,18 @@
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getApiUrl } from '@/src/config/api';
 
 export default async function profileActions() {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
 
     // Forward cookies to backend
-    const res = await fetch(getApiUrl('profile'));
-    console.log(res);
+    const res = await fetch(getApiUrl('profile'), {
+        headers: {
+            Cookie: `token=${token}`,
+        },
+    });
+
     if (res.status === 401) {
         redirect('/login');
     }
