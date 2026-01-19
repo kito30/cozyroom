@@ -1,5 +1,6 @@
-'use client';
+'use server'
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers'
 import type { LoginResponse } from '@/src/types/login_response';
 import { getApiUrl } from '@/src/config/api';
 
@@ -24,15 +25,37 @@ export async function loginAction(
       headers: {
         'Content-Type': 'application/json',
       },
+      cache: 'no-store',
       body: JSON.stringify({ email, password }),
-      credentials: 'include'
     });
     data = await res.json();
   } catch (error) {
     console.error('[LoginAction] Error:', error);
     return { error: 'Failed to connect to server. Please try again.' };
   }
-
+  const cookieStore = await cookies();
+  
+  // Set Access Token (Short lived)
+  if (data.access_token) {
+    cookieStore.set('access_token', data.access_token, {
+      httpOnly: true,  
+      secure: process.env.NODE_ENV === 'production', // HTTPS only
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60, // 1 hour 
+    });
+  }
+  
+  // Set Refresh Token (Long lived)
+  if (data.refresh_token) {
+    cookieStore.set('refresh_token', data.refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 Days
+    });
+  }
   if (!res.ok) {
     const errorMessage = data.message || data.error || 'Invalid email or password';
     console.error('[LoginAction] Login failed:', errorMessage);

@@ -8,7 +8,8 @@ export class AuthGuard implements CanActivate {
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest<Request>();
-        const token = request.cookies['token'] as string | undefined;
+        // Check for access_token cookie (set by Next.js after login)
+        const token = request.cookies['access_token'] as string | undefined;
 
         if (!token) {
             throw new UnauthorizedException('Not authenticated');

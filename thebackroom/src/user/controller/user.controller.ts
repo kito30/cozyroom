@@ -1,8 +1,7 @@
-import { Body, Controller, Post, Get, Req, Res, UseGuards, BadRequestException } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import { Body, Controller, Post, Get, Req, UseGuards, BadRequestException } from '@nestjs/common';
+import type { Request } from 'express';
 import type { User } from '@supabase/supabase-js';
 import { UserService } from '../services/user.service';
-import { CookieService } from '../services/cookie.service';
 import { AuthGuard } from '../guards/auth.guard';
 
 interface AuthenticatedRequest extends Request {
@@ -12,14 +11,12 @@ interface AuthenticatedRequest extends Request {
 @Controller()
 export class UserController {
     constructor(
-        private readonly userService: UserService,
-        private readonly cookieService: CookieService
+        private readonly userService: UserService
     ) {}
 
     @Post('login')
     async login(
-        @Body() body: { email: string; password: string },
-        @Res({ passthrough: true }) res: Response
+        @Body() body: { email: string; password: string }
     ) {
         // Validate request body
         if (!body || typeof body !== 'object') {
@@ -35,21 +32,13 @@ export class UserController {
         try {
             const loginResponse = await this.userService.login(email, password);
             
-            // Set cookies using cookie service
-            if (loginResponse.access_token && loginResponse.refresh_token) {
-                this.cookieService.setAuthCookies(
-                    res,
-                    loginResponse.access_token,
-                    loginResponse.refresh_token,
-                    loginResponse.expires_in
-                );
-            } else {
-                console.warn('[Login] Missing tokens in response');
-            }
-        
+            // Return tokens in response - Next.js will handle setting cookies
             return {
                 ok: loginResponse.ok,
                 user: loginResponse.user,
+                access_token: loginResponse.access_token,
+                refresh_token: loginResponse.refresh_token,
+                expires_in: loginResponse.expires_in,
             };
         } catch (error: unknown) {
             // Log error for debugging
@@ -64,8 +53,7 @@ export class UserController {
 
     @Post('signup')
     async signup(
-        @Body() body: { email: string; password: string; confirm_password: string },
-        @Res({ passthrough: true }) res: Response
+        @Body() body: { email: string; password: string; confirm_password: string }
     ) {
         // Validate request body
         if (!body || typeof body !== 'object') {
@@ -81,32 +69,18 @@ export class UserController {
         try {
             const signUpResponse = await this.userService.signUp(email, password, confirm_password);
             
-            // Set cookies if tokens are available (session created immediately)
-            if (signUpResponse.access_token && signUpResponse.refresh_token) {
-                this.cookieService.setAuthCookies(
-                    res,
-                    signUpResponse.access_token,
-                    signUpResponse.refresh_token,
-                    signUpResponse.expires_in || 3600
-                );
-            }
-            
-            // Return response with appropriate message
-            if (signUpResponse.ok && signUpResponse.user) {
-                return {
-                    ok: true,
-                    user: signUpResponse.user,
-                    requiresConfirmation: signUpResponse.requiresConfirmation || false,
-                    message: signUpResponse.requiresConfirmation 
-                        ? 'Please check your email to confirm your account'
-                        : 'Account created successfully',
-                };
-            }
-
+            // Return tokens in response if available - Next.js will handle setting cookies
             return {
-                ok: false,
-                message: 'Failed to create account',
+                ok: signUpResponse.ok,
+                user: signUpResponse.user,
+                requiresConfirmation: signUpResponse.requiresConfirmation || false,
+                ...(signUpResponse.access_token && {
+                    access_token: signUpResponse.access_token,
+                    refresh_token: signUpResponse.refresh_token,
+                    expires_in: signUpResponse.expires_in,
+                }),
             };
+            
         } catch (error: unknown) {
             // Log error for debugging
             console.error('[SignUp Controller] Error:', error);
@@ -121,7 +95,7 @@ export class UserController {
     async checkAuth(@Req() req: Request) {
         // Soft check endpoint - always returns 200, with user or null
         // Used by frontend to check auth state without throwing errors
-        const token = req.cookies['token'] as string | undefined;
+        const token = req.cookies['access_token'] as string | undefined;
         
         if (!token) {
             return { user: null };
