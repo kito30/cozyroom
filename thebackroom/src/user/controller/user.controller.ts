@@ -96,16 +96,35 @@ export class UserController {
         // Soft check endpoint - always returns 200, with user or null
         // Used by frontend to check auth state without throwing errors
         const token = req.cookies['access_token'] as string | undefined;
+        const refreshToken = req.cookies['refresh_token'] as string | undefined;
         
         if (!token) {
             return { user: null };
         }
         
         try {
+            // Try to validate the access token first
             const user = await this.userService.getAuth(token);
             return { user };
         } catch {
-            // Token invalid/expired - return null instead of throwing
+            // Access token is invalid/expired - try to refresh if refresh_token exists
+            if (refreshToken) {
+                try {
+                    const tokens = await this.userService.refreshToken(refreshToken);
+                    // Return both user and new tokens so middleware can update cookies
+                    const user = await this.userService.getAuth(tokens.access_token);
+                    return {
+                        user,
+                        access_token: tokens.access_token,
+                        refresh_token: tokens.refresh_token,
+                        expires_in: tokens.expires_in,
+                    };
+                } catch {
+                    // Refresh failed - return null
+                    return { user: null };
+                }
+            }
+            // No refresh token - return null
             return { user: null };
         }
     }
@@ -113,7 +132,7 @@ export class UserController {
     @UseGuards(AuthGuard)
     async getProfile(@Req() req: AuthenticatedRequest) {
         // User is already validated by AuthGuard and attached to request
-        const token = req.cookies['token'] as string ;
+        const token = req.cookies['access_token'] as string;
         const profile = await this.userService.getProfile(token);
         
         return {

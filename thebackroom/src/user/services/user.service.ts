@@ -160,6 +160,40 @@ export class UserService {
         }
         return data.user;
     }
+
+    async refreshToken(refreshToken: string): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
+        if (!refreshToken) {
+            throw new UnauthorizedException('Refresh token is required');
+        }
+
+        try {
+            const { data, error } = await this.publicClient.auth.refreshSession({
+                refresh_token: refreshToken,
+            });
+
+            if (error || !data?.session) {
+                throw new UnauthorizedException('Invalid or expired refresh token');
+            }
+
+            const { access_token, refresh_token, expires_in } = data.session;
+
+            if (!access_token || !refresh_token) {
+                throw new UnauthorizedException('Failed to refresh tokens');
+            }
+
+            return {
+                access_token,
+                refresh_token,
+                expires_in: expires_in ?? 3600,
+            };
+        } catch (error: unknown) {
+            if (error instanceof UnauthorizedException) {
+                throw error;
+            }
+            console.error('[RefreshToken] Error:', error);
+            throw new UnauthorizedException('Failed to refresh token');
+        }
+    }
     async getProfile(token: string): Promise<UserWithProfile | null> {
         
         const protectedClient = createSupabaseClient(token);

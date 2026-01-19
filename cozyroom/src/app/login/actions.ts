@@ -33,6 +33,15 @@ export async function loginAction(
     console.error('[LoginAction] Error:', error);
     return { error: 'Failed to connect to server. Please try again.' };
   }
+
+  // Check if login was successful FIRST
+  if (!res.ok) {
+    const errorMessage = data.message || data.error || 'Invalid email or password';
+    console.error('[LoginAction] Login failed:', errorMessage);
+    return { error: errorMessage };
+  }
+
+  // Only set cookies if login was successful
   const cookieStore = await cookies();
   
   // Set Access Token (Short lived)
@@ -42,8 +51,9 @@ export async function loginAction(
       secure: process.env.NODE_ENV === 'production', // HTTPS only
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60, // 1 hour 
+      maxAge: data.expires_in || 3600, // Use backend's expires_in
     });
+    console.log('[LoginAction] Set access_token cookie');
   }
   
   // Set Refresh Token (Long lived)
@@ -55,11 +65,7 @@ export async function loginAction(
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 Days
     });
-  }
-  if (!res.ok) {
-    const errorMessage = data.message || data.error || 'Invalid email or password';
-    console.error('[LoginAction] Login failed:', errorMessage);
-    return { error: errorMessage };
+    console.log('[LoginAction] Set refresh_token cookie');
   }
 
   // Backend handles cookie setting, just redirect

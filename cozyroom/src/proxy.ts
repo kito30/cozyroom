@@ -12,8 +12,13 @@ export default async function middleware(request: NextRequest) {
   const accessToken = request.cookies.get("access_token");
   const refreshToken = request.cookies.get("refresh_token");
 
-  // 1. If access_token exists, always verify with backend first
-  // Backend will decide if token is valid (even if client-side check says expired)
+  console.log("[Middleware] Checking auth for path:", pathname, {
+    hasAccessToken: !!accessToken,
+    hasRefreshToken: !!refreshToken,
+  });
+
+  // 1. If access_token exists, verify with backend
+  // Backend will handle all validation including expiration
   if(accessToken) {
     const cookieHeader = request.headers.get('cookie') || '';
     
@@ -28,22 +33,53 @@ export default async function middleware(request: NextRequest) {
       if (authCheckResponse.ok) {
         const authData = await authCheckResponse.json();
         
+        console.log("[Middleware] /auth response:", {
+          hasUser: !!authData.user,
+          hasAccessToken: !!authData.access_token,
+          hasRefreshToken: !!authData.refresh_token,
+        });
+        
         // Backend says token is valid - allow request
         if (authData.user) {
-          // If token appears expired client-side but backend says it's valid,
-          // backend might have different expiration logic or grace period
-          if (isTokenExpired(accessToken.value)) {
-            console.log("[Middleware] Token appears expired but validated by backend");
+          const response = NextResponse.next();
+          
+          // If backend refreshed tokens (returned new tokens), update cookies
+          if (authData.access_token) {
+            response.cookies.set('access_token', authData.access_token, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              path: '/',
+              maxAge: authData.expires_in || 3600,
+            });
+            
+            // Update refresh_token if backend returned a new one (token rotation)
+            if (authData.refresh_token) {
+              response.cookies.set('refresh_token', authData.refresh_token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/',
+                maxAge: 60 * 60 * 24 * 7, // 7 Days
+              });
+            }
+            
+            console.log("[Middleware] Tokens refreshed by /auth endpoint");
           }
-          return NextResponse.next();
+          
+          return response;
+        } else {
+          console.log("[Middleware] /auth returned null user, will try refresh");
         }
+      } else {
+        console.log("[Middleware] /auth response not ok:", authCheckResponse.status);
       }
     } catch (error) {
       console.error("[Middleware] Auth check failed:", error);
     }
   }
 
-  // 3. Token invalid on backend or missing - try to refresh
+  // 2. Token invalid on backend or missing - try to refresh
   if(refreshToken) {
     try {
       console.log("[Middleware] Access token expired/invalid. Attempting refresh...");
@@ -109,39 +145,6 @@ function redirectToLogin(request: NextRequest) {
   return response;
 }
 
-// Helper to check JWT expiration (works in Next.js Edge Runtime)
-function isTokenExpired(token: string): boolean {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return true;
-    
-    const payloadBase64 = parts[1];
-    if (!payloadBase64) return true;
-    
-    // Decode Base64 URL-safe (handle padding)
-    const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
-    const paddedBase64 = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-    
-    // Decode Base64 to string
-    const binaryString = atob(paddedBase64);
-    const jsonPayload = decodeURIComponent(
-      binaryString.split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
-    );
-    
-    const { exp } = JSON.parse(jsonPayload);
-    
-    if (!exp || typeof exp !== 'number') return true;
-    
-    // Check if expired (current time > expiration time)
-    // Add 10-second buffer to account for clock skew
-    const expirationTime = exp * 1000;
-    const bufferTime = 10 * 1000; // 10 seconds
-    return Date.now() >= (expirationTime - bufferTime);
-  } catch {
-    // If we can't decode it, assume it's expired
-    return true;
-  }
-}
 
 
 export const config = {

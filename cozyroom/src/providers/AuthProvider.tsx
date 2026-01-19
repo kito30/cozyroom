@@ -2,9 +2,8 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { isPublicPath, ROUTES } from "../config/routes";
 import { getApiUrl } from "../config/api";
 
 interface AuthContextType {
@@ -25,7 +24,6 @@ export function AuthProvider({children}: {children: ReactNode}) {
 
     const [user, setUser] = useState <User | null> (null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const router = useRouter();
     const pathname = usePathname();
     useEffect(()=> {
         const checkAuth = async () => {
@@ -42,21 +40,24 @@ export function AuthProvider({children}: {children: ReactNode}) {
             
             if(res.ok) { 
                 const data = await res.json();
+                console.log('[AuthProvider] Auth check result:', { hasUser: !!data.user });
                 setUser(data.user);
+                
+                // Don't redirect here - middleware already handles auth
+                // Only update the user state for UI purposes
+                // If middleware allowed the request through, user should be authenticated
             } else {
+                console.log('[AuthProvider] Auth check failed with status:', res.status);
                 setUser(null);
-                if(!isPublicPath(pathname))
-                router.push(ROUTES.login);
+                // Don't redirect - middleware will handle it
+                // This is just for UI state, not for auth enforcement
             }
         }
         catch(error) {
-            console.error("Error checking auth:", error);
-            // Don't redirect on network errors - might be backend down
+            console.error("[AuthProvider] Error checking auth:", error);
+            // Don't redirect on errors - middleware handles auth enforcement
+            // This is just for UI state
             setUser(null);
-            // Only redirect if we're on a protected path
-            if(!isPublicPath(pathname)) {
-                router.push(ROUTES.login);
-            }
         } finally {
             setIsLoading(false);
         }
@@ -69,7 +70,7 @@ export function AuthProvider({children}: {children: ReactNode}) {
         // clean up
         return () => clearInterval(interval);
 
-    },[router, pathname]);
+    },[pathname]);
     return (
         <AuthContext.Provider value={{user, setUser, token: null, isLoading}}>
             {children}
