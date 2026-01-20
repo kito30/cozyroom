@@ -12,7 +12,10 @@ import {
 
 @Injectable()
 export class UserService {
-    private publicClient = createSupabaseClient();
+    // Helper method to get appropriate Supabase client
+    private getClient(token?: string) {
+        return createSupabaseClient(token);
+    }
 
     async login(email: string, password: string): Promise<LoginResponse> {
         try {
@@ -22,7 +25,7 @@ export class UserService {
 
             const normalizedEmail = normalizeEmail(email);
 
-            const { data, error } = await this.publicClient.auth.signInWithPassword({
+            const { data, error } = await this.getClient().auth.signInWithPassword({
                 email: normalizedEmail,
                 password,
             });
@@ -85,7 +88,7 @@ export class UserService {
 
             const normalizedEmail = normalizeEmail(email);
 
-            const { data, error } = await this.publicClient.auth.signUp({
+            const { data, error } = await this.getClient().auth.signUp({
                 email: normalizedEmail,
                 password,
             });
@@ -151,61 +154,55 @@ export class UserService {
         }
     }
     async getAuth(token: string): Promise<User> {
-        if(!token) {
+        if (!token) {
             throw new UnauthorizedException('No session');
         }
-        const {data, error} = await this.publicClient.auth.getUser(token);
-        if(error || !data.user) {
+        
+        const { data, error } = await this.getClient().auth.getUser(token);
+        
+        if (error || !data.user) {
             throw new UnauthorizedException('Invalid token');
         }
+        
         return data.user;
     }
 
     async refreshToken(refreshToken: string): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
         if (!refreshToken) {
-            throw new UnauthorizedException('Refresh token is required');
+            throw new UnauthorizedException('Refresh token required');
         }
 
-        try {
-            const { data, error } = await this.publicClient.auth.refreshSession({
-                refresh_token: refreshToken,
-            });
+        const { data, error } = await this.getClient().auth.refreshSession({
+            refresh_token: refreshToken,
+        });
 
-            if (error || !data?.session) {
-                throw new UnauthorizedException('Invalid or expired refresh token');
-            }
-
-            const { access_token, refresh_token, expires_in } = data.session;
-
-            if (!access_token || !refresh_token) {
-                throw new UnauthorizedException('Failed to refresh tokens');
-            }
-
-            return {
-                access_token,
-                refresh_token,
-                expires_in: expires_in ?? 3600,
-            };
-        } catch (error: unknown) {
-            if (error instanceof UnauthorizedException) {
-                throw error;
-            }
-            console.error('[RefreshToken] Error:', error);
-            throw new UnauthorizedException('Failed to refresh token');
+        if (error || !data?.session) {
+            throw new UnauthorizedException('Invalid refresh token');
         }
+
+        const { access_token, refresh_token, expires_in } = data.session;
+
+        return {
+            access_token,
+            refresh_token,
+            expires_in: expires_in ?? 3600,
+        };
     }
-    async getProfile(token: string): Promise<UserWithProfile | null> {
-        
-        const protectedClient = createSupabaseClient(token);
-        const respond = await protectedClient
+    async getProfile(token: string): Promise<UserWithProfile> {
+        if (!token) {
+            throw new UnauthorizedException('No session');
+        }
+
+        const response = await this.getClient(token)
             .from('profiles')
             .select('*')
             .single();
-        console.log(respond);
-        if(respond.error || !respond.data) {
-            return null;
+
+        if (response.error || !response.data) {
+            throw new BadRequestException('Profile not found');
         }
-        return respond.data as UserWithProfile;
+
+        return response.data as UserWithProfile;
     }
 }
 

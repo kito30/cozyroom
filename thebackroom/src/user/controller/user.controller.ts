@@ -47,7 +47,7 @@ export class UserController {
             if (error instanceof Error) {
                 throw error;
             }
-            throw error;
+            throw new BadRequestException('An unexpected error occurred');
         }
     }
 
@@ -88,7 +88,7 @@ export class UserController {
             if (error instanceof Error) {
                 throw error;
             }
-            throw error;
+            throw new BadRequestException('An unexpected error occurred');
         }
     }
     @Get('auth')
@@ -131,12 +131,25 @@ export class UserController {
     @Get('profile')
     @UseGuards(AuthGuard)
     async getProfile(@Req() req: AuthenticatedRequest) {
-        // User is already validated by AuthGuard and attached to request
         const token = req.cookies['access_token'] as string;
         const profile = await this.userService.getProfile(token);
         
         return {
-            profile: profile,
+            profile,
+        };
+    }
+
+    @Post('refresh')
+    async refresh(@Req() req: Request): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
+        const refreshToken = req.cookies['refresh_token'] as string | undefined;
+        if (!refreshToken) {
+            throw new BadRequestException('Refresh token is required');
+        }
+        const tokens = await this.userService.refreshToken(refreshToken);
+        return {
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_in: tokens.expires_in,
         };
     }
 }

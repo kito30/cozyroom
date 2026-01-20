@@ -53,19 +53,16 @@ export async function loginAction(
       path: '/',
       maxAge: data.expires_in || 3600, // Use backend's expires_in
     });
-    console.log('[LoginAction] Set access_token cookie');
   }
-  
-  // Set Refresh Token (Long lived)
+
   if (data.refresh_token) {
     cookieStore.set('refresh_token', data.refresh_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 Days
+      maxAge: 60 * 60 * 24 * 30, // 30 days - backend validates actual expiry
     });
-    console.log('[LoginAction] Set refresh_token cookie');
   }
 
   // Backend handles cookie setting, just redirect
