@@ -50,7 +50,7 @@ export default function FeatureCard({
 
   return (
     <div className={`group relative bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl shadow-black/40 transition-all duration-300 ${colors.hover} hover:shadow-2xl hover:-translate-y-1`}>
-      <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${colors.bg} ${colors.text} mb-4 ring-1 ${colors.ring}`}>
+      <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl ${colors.bg} ${colors.text} mb-4 ring-1 ${colors.ring}`}>
         {icon}
       </div>
       <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>

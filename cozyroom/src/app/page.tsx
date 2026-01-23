@@ -9,9 +9,8 @@ import {
   StatsSection,
 } from '@/src/components/landing';
 import { 
-  LockClosedIcon, 
-  BoltIcon, 
-  HandThumbUpIcon,
+  UserGroupIcon, 
+  ChatBubbleLeftRightIcon, 
   ArrowRightIcon 
 } from '@heroicons/react/24/outline';
 
@@ -53,21 +52,21 @@ const HomePage = () => {
           <FeatureGrid>
             <FeatureCard
               accentColor="emerald"
-              title="Secure & Private"
-              description="Your data is protected with industry-standard encryption and security practices."
-              icon={<LockClosedIcon className="w-6 h-6" />}
+              title="Have Fun with Friends"
+              description="Connect, share, and create unforgettable memories with your squad in your own cozy space."
+              icon={<UserGroupIcon className="w-6 h-6" />}
             />
             <FeatureCard
               accentColor="blue"
-              title="Lightning Fast"
-              description="Built with modern technologies for optimal performance and instant responses."
-              icon={<BoltIcon className="w-6 h-6" />}
+              title="Realtime Chat"
+              description="Instant messaging that keeps you connected. Chat, react, and vibe together in real-time."
+              icon={<ChatBubbleLeftRightIcon className="w-6 h-6" />}
             />
             <FeatureCard
               accentColor="indigo"
-              title="User Friendly"
-              description="Intuitive interface designed with you in mind for effortless navigation."
-              icon={<HandThumbUpIcon className="w-6 h-6" />}
+              title="Anime & Memes"
+              description="Share your favorite anime moments and dank memes. Express yourself with the culture you love."
+              icon={<span className="text-2xl font-bold m-2">UwU</span>}
             />
           </FeatureGrid>
         </div>
@@ -76,10 +75,10 @@ const HomePage = () => {
       {/* Stats */}
       <StatsSection
         stats={[
-          { value: '99.9%', label: 'Uptime', gradient: 'from-emerald-400 to-teal-400' },
-          { value: '24/7', label: 'Support', gradient: 'from-blue-400 to-indigo-400' },
-          { value: 'Secure', label: 'Authentication', gradient: 'from-indigo-400 to-purple-400' },
-          { value: 'Fast', label: 'Response Time', gradient: 'from-purple-400 to-pink-400' },
+          { value: '200%', label: 'Uptime', gradient: 'from-emerald-400 to-teal-400' },
+          { value: '58/7', label: 'Support', gradient: 'from-blue-400 to-indigo-400' },
+          { value: 'Not Secure', label: 'Authentication', gradient: 'from-indigo-400 to-purple-400' },
+          { value: 'Mid', label: 'Response Time', gradient: 'from-purple-400 to-pink-400' },
         ]}
       />
 
