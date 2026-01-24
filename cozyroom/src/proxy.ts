@@ -30,7 +30,14 @@ export default async function middleware(request: NextRequest) {
       });
 
       if (!res.ok) {
-        return redirectToLogin(request);
+        // Only delete cookies if it's a 401 (invalid/expired token)
+        // For other errors (500, 503, network issues), keep cookies for retry
+        if (res.status === 401) {
+          console.error("[Middleware] Token invalid (401) - logging out");
+          return redirectToLogin(request);
+        }
+        
+        return NextResponse.next();
       }
 
       const tokens: { access_token: string; refresh_token: string; expires_in: number } =
@@ -56,8 +63,9 @@ export default async function middleware(request: NextRequest) {
       });
 
       return response;
-    } catch {
-      return redirectToLogin(request);
+    } catch (error) {
+      console.error("[Middleware] Network error during token refresh:", error instanceof Error ? error.message : error);
+      return NextResponse.next();
     }
   }
 
@@ -71,7 +79,6 @@ function redirectToLogin(request: NextRequest) {
 
   const response = NextResponse.redirect(loginUrl);
 
-  // Clean up dead cookies so we don't get loops
   response.cookies.delete("access_token");
   response.cookies.delete("refresh_token");
 

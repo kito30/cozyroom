@@ -29,7 +29,6 @@ export function AuthProvider({children}: {children: ReactNode}) {
         const checkAuth = async () => {
         try {
             const apiUrl = getApiUrl('auth');
-            console.log('[AuthProvider] Fetching from:', apiUrl);
             const res = await fetch(apiUrl, {
                 method: "GET",
                 credentials: 'include',
@@ -40,23 +39,17 @@ export function AuthProvider({children}: {children: ReactNode}) {
             
             if(res.ok) { 
                 const data = await res.json();
-                console.log('[AuthProvider] Auth check result:', { hasUser: !!data.user });
                 setUser(data.user);
                 
                 // Don't redirect here - middleware already handles auth
                 // Only update the user state for UI purposes
                 // If middleware allowed the request through, user should be authenticated
             } else {
-                console.log('[AuthProvider] Auth check failed with status:', res.status);
                 setUser(null);
-                // Don't redirect - middleware will handle it
-                // This is just for UI state, not for auth enforcement
+     
             }
         }
         catch(error) {
-            console.error("[AuthProvider] Error checking auth:", error);
-            // Don't redirect on errors - middleware handles auth enforcement
-            // This is just for UI state
             setUser(null);
         } finally {
             setIsLoading(false);
