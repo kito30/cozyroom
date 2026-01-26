@@ -3,7 +3,7 @@ import AuthStatus from "@/src/components/AuthStatus";
 
 export default function Nav() {
     return (
-        <header className="sticky top-0 border-b border-slate-800/70 bg-slate-950/80 backdrop-blur">
+        <header className="sticky top-0 border-b border-slate-800/70 bg-slate-950/80 backdrop-blur z-10">
             <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
                 <Link href="/" className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 shadow-lg shadow-black/40 ring-1 ring-slate-700/80">

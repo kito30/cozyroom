@@ -17,18 +17,22 @@ export default function UserMenu({ userEmail }: UserMenuProps) {
 
     // Close menu when clicking outside
     useEffect(() => {
+        if (!isMenuOpen) return;
+
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setIsMenuOpen(false);
             }
         };
 
-        if (isMenuOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
+        // Add listener with a small delay to prevent immediate closing
+        const timeoutId = setTimeout(() => {
+            document.addEventListener('click', handleClickOutside);
+        }, 10);
 
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
+            clearTimeout(timeoutId);
+            document.removeEventListener('click', handleClickOutside);
         };
     }, [isMenuOpen]);
 
@@ -54,21 +58,21 @@ export default function UserMenu({ userEmail }: UserMenuProps) {
             </button>
 
             {isMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-800/80 bg-slate-900/95 backdrop-blur-xl shadow-xl shadow-black/40 animate-fade-in">
+                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-800/80 bg-slate-900/95 backdrop-blur-xl shadow-xl shadow-black/40 animate-fade-in ">
                     <div className="p-2">
                         <Link
                             href="/profile"
                             onClick={() => setIsMenuOpen(false)}
                             className="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-300 transition hover:bg-slate-800 hover:text-slate-50"
                         >
-                            <UserIcon className="w-4 h-4" />
+                            <UserIcon className="w-4 h-4 " />
                             Profile
                         </Link>
                         <button
                             onClick={handleLogout}
                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-rose-400 transition hover:bg-rose-500/10 hover:text-rose-300"
                         >
-                            <ArrowRightStartOnRectangleIcon className="w-4 h-4" />
+                            <ArrowRightStartOnRectangleIcon className="w-4 h-4 " />
                             Logout
                         </button>
                     </div>
