@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Req, UseGuards, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Post, Get, Patch, Req, UseGuards, BadRequestException } from '@nestjs/common';
 import type { Request } from 'express';
 import type { User } from '@supabase/supabase-js';
 import { UserService } from '../services/user.service';
@@ -136,6 +136,31 @@ export class UserController {
         
         return {
             profile,
+        };
+    }
+
+    @Patch('profile')
+    @UseGuards(AuthGuard)
+    async updateProfile(
+        @Req() req: AuthenticatedRequest,
+        @Body() body: {
+            full_name?: string | null;
+            bio?: string | null;
+            phone?: string | null;
+            avatar_url?: string | null;
+        }
+    ) {
+        const token = req.cookies['access_token'] as string;
+        const user = req.user; // User attached by AuthGuard
+
+        const updatedProfile = await this.userService.updateProfile(
+            token,
+            user.id,
+            body
+        );
+
+        return {
+            profile: updatedProfile,
         };
     }
 

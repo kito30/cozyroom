@@ -204,5 +204,62 @@ export class UserService {
 
         return response.data as UserWithProfile;
     }
+
+    async updateProfile(
+        token: string,
+        userId: string,
+        updates: {
+            full_name?: string | null;
+            bio?: string | null;
+            phone?: string | null;
+            avatar_url?: string | null;
+        }
+    ): Promise<UserWithProfile> {
+        if (!token) {
+            throw new UnauthorizedException('No session');
+        }
+
+        // Validate inputs
+        if (updates.full_name && updates.full_name.length > 100) {
+            throw new BadRequestException('Display name is too long (maximum 100 characters)');
+        }
+
+        if (updates.bio && updates.bio.length > 500) {
+            throw new BadRequestException('Bio is too long (maximum 500 characters)');
+        }
+
+        if (updates.phone && updates.phone.length > 20) {
+            throw new BadRequestException('Phone number is too long (maximum 20 characters)');
+        }
+
+        if (updates.avatar_url && updates.avatar_url.length > 500) {
+            throw new BadRequestException('Avatar URL is too long');
+        }
+
+        // Update profile in Supabase
+        const response = await this.getClient(token)
+            .from('profiles')
+            .update({
+                full_name: updates.full_name,
+                bio: updates.bio,
+                phone: updates.phone,
+                avatar_url: updates.avatar_url,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId)
+            .select()
+            .single();
+
+        if (response.error) {
+            console.error('[UpdateProfile] Supabase error:', response.error);
+            throw new BadRequestException('Failed to update profile');
+        }
+
+        if (!response.data) {
+            throw new BadRequestException('Profile not found');
+        }
+
+        return response.data as UserWithProfile;
+    }
 }
 

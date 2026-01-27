@@ -17,6 +17,7 @@ export async function loginAction(
   if (!email || !password) {
     return { error: 'Email and password are required' };
   }
+
   let res: Response;
   let data: LoginResponse; 
   try {
@@ -48,10 +49,10 @@ export async function loginAction(
   if (data.access_token) {
     cookieStore.set('access_token', data.access_token, {
       httpOnly: true,  
-      secure: process.env.NODE_ENV === 'production', // HTTPS only
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: data.expires_in || 3600, // Use backend's expires_in
+      maxAge: data.expires_in || 3600,
     });
   }
 
@@ -61,10 +62,9 @@ export async function loginAction(
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 30, // 30 days - backend validates actual expiry
+      maxAge: 60 * 60 * 24 * 30, // 30 days
     });
   }
 
-  // Backend handles cookie setting, just redirect
   redirect('/profile'); 
 }

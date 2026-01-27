@@ -53,7 +53,7 @@ export async function registerAction(
       body: JSON.stringify({ email, password, confirm_password }),
     });
     data = await res.json();
-  } catch (error) {
+  } catch {
     return { error: 'Failed to connect to server. Please try again.' };
   }
 
@@ -89,6 +89,6 @@ export async function registerAction(
     redirect('/profile');
   }
 
-  // If we get here, account was created but no tokens (shouldn't happen if requiresConfirmation is false)
+  // If we get here, account was created but no tokens
   return { error: 'Account created successfully! Please log in.' };
 }
