@@ -25,45 +25,37 @@ export function AuthProvider({children}: {children: ReactNode}) {
     const [user, setUser] = useState <User | null> (null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const pathname = usePathname();
-    useEffect(()=> {
+    useEffect(() => {
         const checkAuth = async () => {
-        try {
-            const apiUrl = getApiUrl('auth');
-            const res = await fetch(apiUrl, {
-                method: "GET",
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            
-            if(res.ok) { 
-                const data = await res.json();
-                setUser(data.user);
+            try {
+                const apiUrl = getApiUrl('auth');
+                const res = await fetch(apiUrl, {
+                    method: "GET",
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
                 
-                // Don't redirect here - middleware already handles auth
-                // Only update the user state for UI purposes
-                // If middleware allowed the request through, user should be authenticated
-            } else {
+                if (res.ok) { 
+                    const data = await res.json();
+                    setUser(data.user);
+                } else {
+                    setUser(null);
+                }
+            } catch (error) {
+                console.error("[AuthProvider] Error checking auth:", error);
                 setUser(null);
-     
+            } finally {
+                setIsLoading(false);
             }
-        }
-        catch(error) {
-            setUser(null);
-        } finally {
-            setIsLoading(false);
-        }
-    }
-    checkAuth();
-    const interval = setInterval(() => {
+        };
+
+        // Check auth on mount and when pathname changes
+        // Middleware handles token refresh and validation on every request
+        // No need for polling - auth state updates when user navigates
         checkAuth();
-    }, 1000 * 60 * 5); 
-
-        // clean up
-        return () => clearInterval(interval);
-
-    },[pathname]);
+    }, [pathname]);
     return (
         <AuthContext.Provider value={{user, setUser, token: null, isLoading}}>
             {children}
