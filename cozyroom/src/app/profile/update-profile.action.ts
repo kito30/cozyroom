@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { updateProfileServer } from '@/src/app/services/user.service';
+import { updateProfileServer } from '@/src/app/services/user.service.server';
 
 export type UpdateProfileState = {
   error?: string | string[];

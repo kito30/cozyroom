@@ -1,4 +1,4 @@
-import { getProfileServer } from '@/src/app/services/user.service';
+import { getProfileServer } from '@/src/app/services/user.service.server';
 
 export default async function profileActions() {
     const res = await getProfileServer();

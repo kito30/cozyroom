@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 
 import { usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { checkAuthClient } from "../app/services/user.service";
+import { checkAuthClient } from "../app/services/user.service.client";
 
 interface AuthContextType {
     user: User | null;

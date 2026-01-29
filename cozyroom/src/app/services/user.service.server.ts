@@ -1,24 +1,11 @@
+'use server';
+
 import { getApiUrl } from "@/src/config/api";
 import { cookies } from "next/headers";
-// For client components
-export const checkAuthClient = async () => {
-    try {
-        const apiUrl = getApiUrl('auth');
-        const res = await fetch(apiUrl, {
-            method: "GET",
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        return res;
-    } catch (error) {
-        console.error("[checkAuthClient] Error:", error);
-        return null;
-    }
-}
 
-// For server components
+/**
+ * Server-side auth check
+ */
 export const checkAuthServer = async () => {  
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
@@ -87,7 +74,6 @@ export const updateProfileServer = async (profileData: {
     }
 }
 
-
 export const loginServer = async (email: string, password: string) => {
     try {
         const apiUrl = getApiUrl('login');
@@ -106,7 +92,6 @@ export const loginServer = async (email: string, password: string) => {
     }
 }
 
-
 export const registerServer = async (email: string, password: string, confirm_password: string) => {
     try {
         const apiUrl = getApiUrl('signup');
@@ -124,7 +109,6 @@ export const registerServer = async (email: string, password: string, confirm_pa
         return null;
     }
 }
-
 
 export const logoutServer = async () => {
     const cookieStore = await cookies();

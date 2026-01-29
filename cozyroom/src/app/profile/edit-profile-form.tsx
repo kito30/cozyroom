@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { updateProfileAction, type UpdateProfileState } from './update-profile.action';
 import { uploadAvatar } from './upload-avatar';
 import { CameraIcon } from '@heroicons/react/24/outline';
+import Image from 'next/image';
 
 interface EditProfileFormProps {
   profile: {
@@ -97,7 +98,7 @@ export default function EditProfileForm({ profile }: EditProfileFormProps) {
         <div className="relative group">
           <div className="h-24 w-24 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-4xl font-bold text-slate-900 shadow-lg shadow-emerald-500/30 ring-4 ring-slate-800/50 overflow-hidden">
             {avatarPreview ? (
-              <img
+              <Image
                 src={avatarPreview}
                 alt="Profile"
                 className="h-full w-full rounded-full object-cover"

@@ -1,7 +1,7 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { registerServer } from '@/src/app/services/user.service';
+import { registerServer } from '@/src/app/services/user.service.server';
 
 export type RegisterState = { 
   error?: string | string[];

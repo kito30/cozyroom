@@ -1,6 +1,7 @@
 import profileActions from "./get-profile.action";
 import EditProfileForm from "./edit-profile-form";
 import { UserCircleIcon } from "@heroicons/react/24/outline";
+import Image from 'next/image';
 
 const ProfilePage = async () => {
     const profile = await profileActions();
@@ -15,7 +16,7 @@ const ProfilePage = async () => {
                         <div className="relative">
                             <div className="h-32 w-32 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-5xl font-bold text-slate-900 shadow-2xl shadow-emerald-500/30 ring-4 ring-slate-800/50">
                                 {profile.avatar_url ? (
-                                    <img
+                                    <Image
                                         src={profile.avatar_url}
                                         alt="Profile"
                                         className="h-full w-full rounded-full object-cover"

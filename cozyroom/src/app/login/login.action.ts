@@ -2,7 +2,7 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers'
 import type { LoginResponse } from '@/src/types/login_response';
-import { loginServer } from '@/src/app/services/user.service';
+import { loginServer } from '@/src/app/services/user.service.server';
 
 export type LoginState = { error?: string | string[] } | null;
 
