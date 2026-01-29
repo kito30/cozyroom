@@ -96,12 +96,14 @@ export default function EditProfileForm({ profile }: EditProfileFormProps) {
       {/* Avatar Preview & Upload */}
       <div className="flex items-center gap-6">
         <div className="relative group">
-          <div className="h-24 w-24 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-4xl font-bold text-slate-900 shadow-lg shadow-emerald-500/30 ring-4 ring-slate-800/50 overflow-hidden">
+          <div className="relative h-24 w-24 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-4xl font-bold text-slate-900 shadow-lg shadow-emerald-500/30 ring-4 ring-slate-800/50 overflow-hidden">
             {avatarPreview ? (
               <Image
                 src={avatarPreview}
                 alt="Profile"
-                className="h-full w-full rounded-full object-cover"
+                fill
+                sizes="96px"
+                className="rounded-full object-cover"
               />
             ) : (
               profile.email.charAt(0).toUpperCase()
