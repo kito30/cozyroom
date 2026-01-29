@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { UserIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
-import { logoutAction } from "@/src/app/actions/auth";
+import { logoutAction } from "@/src/app/services/logout.action";
 
 interface UserMenuProps {
     userEmail: string;

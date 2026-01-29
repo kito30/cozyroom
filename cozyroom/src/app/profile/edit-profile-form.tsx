@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
-import { updateProfileAction, type UpdateProfileState } from './actions';
+import { updateProfileAction, type UpdateProfileState } from './update-profile.action';
 import { uploadAvatar } from './upload-avatar';
 import { CameraIcon } from '@heroicons/react/24/outline';
 

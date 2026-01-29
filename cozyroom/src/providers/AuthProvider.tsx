@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 
 import { usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { getApiUrl } from "../config/api";
+import { checkAuthClient } from "../app/services/user.service";
 
 interface AuthContextType {
     user: User | null;
@@ -28,28 +28,20 @@ export function AuthProvider({children}: {children: ReactNode}) {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const apiUrl = getApiUrl('auth');
-                const res = await fetch(apiUrl, {
-                    method: "GET",
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                if (res.ok) { 
+                const res = await checkAuthClient();
+                if (res && res.ok) {
                     const data = await res.json();
                     setUser(data.user);
                 } else {
                     setUser(null);
                 }
             } catch (error) {
-                console.error("[AuthProvider] Error checking auth:", error);
+                console.error("Auth check failed:", error);
                 setUser(null);
             } finally {
                 setIsLoading(false);
             }
-        };
+        }
 
         // Check auth on mount and when pathname changes
         // Middleware handles token refresh and validation on every request

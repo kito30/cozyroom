@@ -1,7 +1,7 @@
 'use client';
 import { useFormStatus } from 'react-dom';
 import { useActionState } from 'react';
-import { loginAction, type LoginState } from './actions';
+import { loginAction, type LoginState } from './login.action';
 import Link from 'next/link';
 
 function SubmitButton() {

@@ -1,4 +1,4 @@
-import profileActions from "./profile_actions";
+import profileActions from "./get-profile.action";
 import EditProfileForm from "./edit-profile-form";
 import { UserCircleIcon } from "@heroicons/react/24/outline";
 

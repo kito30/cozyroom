@@ -1,7 +1,7 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { getApiUrl } from '@/src/config/api';
+import { registerServer } from '@/src/app/services/user.service';
 
 export type RegisterState = { 
   error?: string | string[];
@@ -41,17 +41,13 @@ export async function registerAction(
     return { error: 'Passwords do not match' };
   }
 
-  let res: Response;
+  let res: Response | null;
   let data: SignUpResponse;
   try {
-    res = await fetch(getApiUrl('signup'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store',
-      body: JSON.stringify({ email, password, confirm_password }),
-    });
+    res = await registerServer(email, password, confirm_password);
+    if (!res) {
+      return { error: 'Failed to connect to server. Please try again.' };
+    }
     data = await res.json();
   } catch {
     return { error: 'Failed to connect to server. Please try again.' };

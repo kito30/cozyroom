@@ -2,7 +2,7 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers'
 import type { LoginResponse } from '@/src/types/login_response';
-import { getApiUrl } from '@/src/config/api';
+import { loginServer } from '@/src/app/services/user.service';
 
 export type LoginState = { error?: string | string[] } | null;
 
@@ -18,17 +18,13 @@ export async function loginAction(
     return { error: 'Email and password are required' };
   }
 
-  let res: Response;
+  let res: Response | null;
   let data: LoginResponse; 
   try {
-    res = await fetch(getApiUrl('login'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store',
-      body: JSON.stringify({ email, password }),
-    });
+    res = await loginServer(email, password);
+    if (!res) {
+      return { error: 'Failed to connect to server. Please try again.' };
+    }
     data = await res.json();
   } catch (error) {
     console.error('[LoginAction] Error:', error);
