@@ -129,3 +129,27 @@ export const logoutServer = async () => {
         return null;
     }
 }
+
+/**
+ * Upload avatar via backend API
+ */
+export const uploadAvatarServer = async (formData: FormData) => {
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.toString();
+    
+    try {
+        const apiUrl = getApiUrl('avatar');
+        const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                Cookie: cookieHeader
+            },
+            body: formData,
+            cache: 'no-store'
+        });
+        return res;
+    } catch (error) {
+        console.error("[uploadAvatarServer] Error:", error);
+        return null;
+    }
+}

@@ -1,3 +1,4 @@
+
 import { Injectable, BadRequestException, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
 import { createSupabaseClient } from 'src/utils/supabase/client';
 import type { UserWithProfile, LoginResponse, SignUpResponse } from '../types/user';
@@ -9,7 +10,6 @@ import {
     normalizeEmail,
     getSupabaseErrorMessage,
 } from '../validators';
-
 @Injectable()
 export class UserService {
     // Helper method to get appropriate Supabase client
@@ -260,6 +260,58 @@ export class UserService {
         }
 
         return response.data as UserWithProfile;
+    }
+
+    async uploadAvatar(
+        token: string,
+        userId: string,
+        file: Express.Multer.File
+    ): Promise<{ url: string }> {
+        if (!token) {
+            throw new UnauthorizedException('No session');
+        }
+
+        // Validate file type
+        if (!file.mimetype.startsWith('image/')) {
+            throw new BadRequestException('File must be an image');
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            throw new BadRequestException('Image must be less than 5MB');
+        }
+
+        const supabase = this.getClient(token);
+        const fileExt = file.originalname.split('.').pop() || 'jpg';
+        const fileName = `${userId}.${fileExt}`;
+
+        // Delete old avatar if exists (to prevent accumulation of different extensions)
+        try {
+            await supabase.storage.from('avatars').remove([fileName]);
+        } catch {
+            // Ignore errors - file might not exist
+        }
+
+        // Upload new avatar
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, file.buffer, {
+                contentType: file.mimetype,
+                upsert: true,
+            });
+
+        if (uploadError) {
+            console.error('[UploadAvatar] Supabase error:', uploadError);
+            throw new BadRequestException('Failed to upload avatar');
+        }
+
+        // Get public URL
+        const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+
+        // Add cache-busting parameter
+        const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
+
+        return { url: publicUrl };
     }
 }
 

@@ -1,6 +1,6 @@
 'use server';
 
-import { cookies } from 'next/headers';
+import { uploadAvatarServer } from '../services/user.service.server';
 
 export async function uploadAvatar(formData: FormData): Promise<{ url?: string; error?: string }> {
   try {
@@ -20,41 +20,18 @@ export async function uploadAvatar(formData: FormData): Promise<{ url?: string; 
       return { error: 'Image must be less than 5MB' };
     }
 
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get('access_token')?.value;
+    // Upload via backend API
+    const response = await uploadAvatarServer(formData);
 
-    if (!accessToken) {
-      return { error: 'Not authenticated' };
-    }
-
-    // Create a unique filename
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-    // Upload to Supabase Storage
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/avatars/${fileName}`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: uploadFormData,
-      }
-    );
-
-    if (!response.ok) {
-      console.error('[UploadAvatar] Upload failed:', await response.text());
+    if (!response?.ok) {
+      const errorText = response ? await response.text() : 'Unknown error';
+      console.error('[UploadAvatar] Upload failed:', errorText);
       return { error: 'Failed to upload image' };
     }
 
-    // Return the public URL
-    const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`;
+    const result = await response.json();
     
-    return { url: publicUrl };
+    return { url: result.url };
   } catch (error) {
     console.error('[UploadAvatar] Error:', error);
     return { error: 'Failed to upload image' };

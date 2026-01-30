@@ -1,4 +1,5 @@
-import { Body, Controller, Post, Get, Patch, Req, UseGuards, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Post, Get, Patch, Req, UseGuards, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import type { User } from '@supabase/supabase-js';
 import { UserService } from '../services/user.service';
@@ -176,5 +177,24 @@ export class UserController {
             refresh_token: tokens.refresh_token,
             expires_in: tokens.expires_in,
         };
+    }
+
+    @Post('avatar')
+    @UseGuards(AuthGuard)
+    @UseInterceptors(FileInterceptor('avatar'))
+    async uploadAvatar(
+        @Req() req: AuthenticatedRequest,
+        @UploadedFile() file: Express.Multer.File
+    ) {
+        if (!file) {
+            throw new BadRequestException('No file provided');
+        }
+
+        const token = req.cookies['access_token'] as string;
+        const user = req.user;
+
+        const result = await this.userService.uploadAvatar(token, user.id, file);
+
+        return result;
     }
 }
