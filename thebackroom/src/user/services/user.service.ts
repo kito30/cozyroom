@@ -283,19 +283,13 @@ export class UserService {
 
         const supabase = this.getClient(token);
         const fileExt = file.originalname.split('.').pop() || 'jpg';
-        const fileName = `${userId}.${fileExt}`;
+        const filePath = `${userId}/profilepic_${userId}.${fileExt}`;
 
-        // Delete old avatar if exists (to prevent accumulation of different extensions)
-        try {
-            await supabase.storage.from('avatars').remove([fileName]);
-        } catch {
-            // Ignore errors - file might not exist
-        }
-
+        console.log('filePath', filePath); 
         // Upload new avatar
         const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(fileName, file.buffer, {
+            .from('avatar')
+            .upload(filePath, file.buffer, {
                 contentType: file.mimetype,
                 upsert: true,
             });
@@ -306,7 +300,7 @@ export class UserService {
         }
 
         // Get public URL
-        const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+        const { data } = supabase.storage.from('avatar').getPublicUrl(filePath);
 
         // Add cache-busting parameter
         const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
