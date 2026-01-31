@@ -4,16 +4,7 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { updateProfileInfoAction, type UpdateProfileInfoState } from '@/src/app/services/profile';
 import AvatarSection from '@/src/components/profile/avatar-section';
-
-interface EditProfileFormProps {
-  profile: {
-    email: string;
-    full_name?: string | null;
-    avatar_url?: string | null;
-    bio?: string | null;
-    phone?: string | null;
-  };
-}
+import { useProfile } from '@/src/providers/ProfileProvider';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -28,9 +19,8 @@ function SubmitButton() {
   );
 }
 
-export default function EditProfileForm({ profile }: EditProfileFormProps) {
-
-
+export default function EditProfileForm() {
+  const profile = useProfile();
   const [state, formAction] = useActionState<UpdateProfileInfoState, FormData>(
     updateProfileInfoAction,
     null

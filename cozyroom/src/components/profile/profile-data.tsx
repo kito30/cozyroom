@@ -1,29 +1,12 @@
 'use client';
 
-import { use } from 'react';
 import { UserCircleIcon } from "@heroicons/react/24/outline";
 import Image from 'next/image';
+import { useProfile } from '@/src/providers/ProfileProvider';
 
-interface ProfileData {
-  email: string;
-  full_name?: string | null;
-  avatar_url?: string | null;
-  bio?: string | null;
-  phone?: string | null;
-}
+export default function ProfileData() {
+  const profile = useProfile();
 
-interface ProfileDataProps {
-  profilePromise: Promise<ProfileData>;
-}
-
-/**
- * This component suspends while loading profile data
- * Must be wrapped in a Suspense boundary
- */
-export default function ProfileData({ profilePromise }: ProfileDataProps) {
-  // use() hook will suspend the component until the promise resolves
-  const profile = use(profilePromise);
-  
   return (
     <div className="relative border-b border-slate-800/50 bg-slate-950/50 backdrop-blur-sm">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
