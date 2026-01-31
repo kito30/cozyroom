@@ -52,7 +52,7 @@ export async function updateProfileInfoAction(
       profileUpdate.avatar_url = uploadResult.url; // Add new avatar URL to update
     }
     // If no new avatar file, don't update avatar_url field (keeps existing one in DB)
-
+    console.log('profileUpdate', profileUpdate);
     // Update profile with provided data only
     const res = await updateProfileServer(profileUpdate);
 

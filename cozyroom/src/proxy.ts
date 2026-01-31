@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { isPublicPath, ROUTES } from "@/src/config/routes";
 import { getApiUrl } from "@/src/config/api";
 
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+};
+
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public routes
   if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
@@ -13,12 +19,26 @@ export default async function middleware(request: NextRequest) {
   const accessToken = request.cookies.get("access_token");
   const refreshToken = request.cookies.get("refresh_token");
 
-  // If we have valid access token, let it through
+  // If we have an access token, validate it (might be expired)
   if (accessToken) {
-    return NextResponse.next();
+    try {
+      const authRes = await fetch(getApiUrl("auth"), {
+        method: "GET",
+        headers: {
+          Cookie: request.headers.get("cookie") || "",
+        },
+      });
+      if (authRes.ok) {
+        return NextResponse.next();
+      }
+      // 401 or other error → token invalid or expired, try refresh below
+    } catch {
+      // Network error → allow through, API will return 401 if needed
+      return NextResponse.next();
+    }
   }
 
-  // No access token but have refresh token → refresh it
+  // No valid access token; try refresh if we have refresh_token
   if (refreshToken) {
     try {
       const res = await fetch(getApiUrl("refresh"), {
@@ -30,13 +50,9 @@ export default async function middleware(request: NextRequest) {
       });
 
       if (!res.ok) {
-        // Only delete cookies if it's a 401 (invalid/expired token)
-        // For other errors (500, 503, network issues), keep cookies for retry
         if (res.status === 401) {
-          console.error("[Middleware] Token invalid (401) - logging out");
           return redirectToLogin(request);
         }
-        
         return NextResponse.next();
       }
 
@@ -45,42 +61,33 @@ export default async function middleware(request: NextRequest) {
 
       const response = NextResponse.next();
 
-      // Set new cookies
       response.cookies.set("access_token", tokens.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: tokens.expires_in,
+        ...COOKIE_OPTIONS,
+        maxAge: tokens.expires_in ?? 3600,
       });
-
       response.cookies.set("refresh_token", tokens.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
+        ...COOKIE_OPTIONS,
         maxAge: 60 * 60 * 24 * 30, // 30 days
       });
 
       return response;
     } catch (error) {
-      console.error("[Middleware] Network error during token refresh:", error instanceof Error ? error.message : error);
-      return NextResponse.next();
+      console.error("[Middleware] Refresh failed:", error instanceof Error ? error.message : error);
+      return redirectToLogin(request);
     }
   }
 
-  // No tokens at all → redirect to login
   return redirectToLogin(request);
 }
 
 function redirectToLogin(request: NextRequest) {
   const loginUrl = new URL(ROUTES.login, request.url);
   loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
-
   const response = NextResponse.redirect(loginUrl);
 
-  response.cookies.delete("access_token");
-  response.cookies.delete("refresh_token");
+  // Clear cookies by setting maxAge: 0 with same path/options
+  response.cookies.set("access_token", "", { ...COOKIE_OPTIONS, maxAge: 0 });
+  response.cookies.set("refresh_token", "", { ...COOKIE_OPTIONS, maxAge: 0 });
 
   return response;
 }
