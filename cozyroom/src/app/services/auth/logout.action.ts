@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { logoutServer } from './user.service.server';
+import { logoutServer } from '@/src/app/services/api';
 
 export async function logoutAction() {
   

@@ -1,30 +1,26 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-
 import { usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { checkAuthClient } from "../app/services/user.service.client";
+import { checkAuthClient } from "@/src/app/services/api";
 
 interface AuthContextType {
     user: User | null;
     setUser: (user: User | null) => void;
     token: string | null; // Token is stored in httpOnly cookies, not accessible client-side
-    isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     setUser: () => {},
     token: null,
-    isLoading: true,
 });
 
 export function AuthProvider({children}: {children: ReactNode}) {
-
-    const [user, setUser] = useState <User | null> (null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [user, setUser] = useState<User | null>(null);
     const pathname = usePathname();
+    
     useEffect(() => {
         const checkAuth = async () => {
             try {
@@ -38,8 +34,6 @@ export function AuthProvider({children}: {children: ReactNode}) {
             } catch (error) {
                 console.error("Auth check failed:", error);
                 setUser(null);
-            } finally {
-                setIsLoading(false);
             }
         }
 
@@ -48,12 +42,14 @@ export function AuthProvider({children}: {children: ReactNode}) {
         // No need for polling - auth state updates when user navigates
         checkAuth();
     }, [pathname]);
+    
     return (
-        <AuthContext.Provider value={{user, setUser, token: null, isLoading}}>
+        <AuthContext.Provider value={{user, setUser, token: null}}>
             {children}
         </AuthContext.Provider>
     )
 }
+
 export function useAuth() {
     const context = useContext(AuthContext);
     if(!context) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isPublicPath, ROUTES } from "./config/routes";
-import { getApiUrl } from "./config/api";
+import { isPublicPath, ROUTES } from "@/src/config/routes";
+import { getApiUrl } from "@/src/config/api";
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -1,10 +1,8 @@
 'use server'
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers'
-import type { LoginResponse } from '@/src/types/login_response';
-import { loginServer } from '@/src/app/services/user.service.server';
-
-export type LoginState = { error?: string | string[] } | null;
+import { loginServer } from '@/src/app/services/api';
+import type { LoginState, LoginResponse } from '@/src/types';
 
 export async function loginAction(
   prevState: LoginState,

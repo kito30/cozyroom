@@ -1,7 +1,7 @@
 'use client';
 import { useFormStatus } from 'react-dom';
 import { useActionState } from 'react';
-import { registerAction, type RegisterState } from './register.action';
+import { registerAction, type RegisterState } from '@/src/app/services/auth';
 import Link from 'next/link';
 
 function SubmitButton() {

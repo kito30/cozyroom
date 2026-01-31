@@ -2,6 +2,7 @@
 
 import { getApiUrl } from "@/src/config/api";
 import { cookies } from "next/headers";
+import type { ProfileUpdatePayload } from "@/src/types";
 
 /**
  * Server-side auth check
@@ -48,12 +49,7 @@ export const getProfileServer = async () => {
     }
 }
 
-export const updateProfileServer = async (profileData: {
-    full_name?: string | null;
-    bio?: string | null;
-    phone?: string | null;
-    avatar_url?: string | null;
-}) => {
+export const updateProfileServer = async (profileData: ProfileUpdatePayload) => {
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
     try {

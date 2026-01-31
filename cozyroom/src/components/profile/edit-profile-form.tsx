@@ -1,11 +1,9 @@
 'use client';
 
-import { useActionState, useState, useRef } from 'react';
+import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { updateProfileAction, type UpdateProfileState } from './update-profile.action';
-import { uploadAvatar } from './upload-avatar';
-import { CameraIcon } from '@heroicons/react/24/outline';
-import Image from 'next/image';
+import { updateProfileInfoAction, type UpdateProfileInfoState } from '@/src/app/services/profile';
+import AvatarSection from '@/src/components/profile/avatar-section';
 
 interface EditProfileFormProps {
   profile: {
@@ -31,47 +29,12 @@ function SubmitButton() {
 }
 
 export default function EditProfileForm({ profile }: EditProfileFormProps) {
-  const [state, formAction] = useActionState<UpdateProfileState, FormData>(
-    updateProfileAction,
+
+
+  const [state, formAction] = useActionState<UpdateProfileInfoState, FormData>(
+    updateProfileInfoAction,
     null
   );
-  
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatar_url || null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const avatarUrlInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Show preview immediately
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    // Upload to server
-    setIsUploading(true);
-    setUploadError(null);
-
-    const formData = new FormData();
-    formData.append('avatar', file);
-
-    const result = await uploadAvatar(formData);
-
-    setIsUploading(false);
-
-    if (result.error) {
-      setUploadError(result.error);
-      setAvatarPreview(profile.avatar_url || null);
-    } else if (result.url && avatarUrlInputRef.current) {
-      // Set the URL in the hidden input
-      avatarUrlInputRef.current.value = result.url;
-    }
-  };
 
   return (
     <form action={formAction} className="space-y-6">
@@ -94,73 +57,7 @@ export default function EditProfileForm({ profile }: EditProfileFormProps) {
       )}
 
       {/* Avatar Preview & Upload */}
-      <div className="flex items-center gap-6">
-        <div className="relative group">
-          <div className="relative h-24 w-24 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-4xl font-bold text-slate-900 shadow-lg shadow-emerald-500/30 ring-4 ring-slate-800/50 overflow-hidden">
-            {avatarPreview ? (
-              <Image
-                src={avatarPreview}
-                alt="Profile"
-                fill
-                sizes="96px"
-                className="rounded-full object-cover"
-              />
-            ) : (
-              profile.email.charAt(0).toUpperCase()
-            )}
-          </div>
-          
-          {/* Upload overlay */}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-          >
-            <CameraIcon className="w-8 h-8 text-white" />
-          </button>
-          
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          
-          {/* Hidden URL input for form submission */}
-          <input
-            ref={avatarUrlInputRef}
-            type="hidden"
-            name="avatar_url"
-            defaultValue={profile.avatar_url || ''}
-          />
-        </div>
-        
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-slate-200">Profile Picture</h3>
-          <p className="text-sm text-slate-400 mb-2">
-            {isUploading ? 'Uploading...' : 'Click the avatar to upload a new image'}
-          </p>
-          
-          {uploadError && (
-            <p className="text-sm text-red-400 mt-1">{uploadError}</p>
-          )}
-          
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-200 bg-slate-800/80 border border-slate-700/80 rounded-lg hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <CameraIcon className="w-4 h-4" />
-            {isUploading ? 'Uploading...' : 'Choose Image'}
-          </button>
-          
-          <p className="text-xs text-slate-500 mt-2">Max size: 5MB • PNG, JPG, GIF</p>
-        </div>
-      </div>
+      <AvatarSection email={profile.email} initialAvatarUrl={profile.avatar_url} />
 
       {/* Email (Read-only) */}
       <div className="space-y-2">

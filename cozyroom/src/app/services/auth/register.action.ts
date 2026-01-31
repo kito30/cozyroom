@@ -1,28 +1,8 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { registerServer } from '@/src/app/services/user.service.server';
-
-export type RegisterState = { 
-  error?: string | string[];
-  requiresConfirmation?: boolean;
-} | null;
-
-interface User {
-  id: string;
-  email: string;
-  [key: string]: unknown;
-}
-
-interface SignUpResponse {
-  ok: boolean;
-  user: User;
-  access_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-  message?: string;
-  error?: string;
-}
+import { registerServer } from '@/src/app/services/api';
+import type { RegisterState, SignUpResponse } from '@/src/types';
 
 export async function registerAction(
   prevState: RegisterState,

@@ -1,8 +1,14 @@
 'use server';
 
-import { uploadAvatarServer } from '../services/user.service.server';
+import { uploadAvatarServer } from '@/src/app/services/api';
+import type { AvatarUploadResult } from '@/src/types';
 
-export async function uploadAvatar(formData: FormData): Promise<{ url?: string; error?: string }> {
+/**
+ * Upload avatar file to storage
+ * Used by: AvatarUpload component
+ * Returns public URL of uploaded image
+ */
+export async function uploadAvatarAction(formData: FormData): Promise<AvatarUploadResult> {
   try {
     const file = formData.get('avatar') as File;
     

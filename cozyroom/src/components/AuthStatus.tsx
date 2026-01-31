@@ -2,14 +2,10 @@
 
 import Link from "next/link";
 import { useAuth } from "@/src/providers/AuthProvider";
-import UserMenu from "./UserMenu";
+import UserMenu from "@/src/components/UserMenu";
 
 export default function AuthStatus() {
-    const { user, isLoading } = useAuth();
-
-    if (isLoading) {
-        return <div className="h-9 w-20 animate-pulse rounded-lg bg-slate-800/50" />;
-    }
+    const { user } = useAuth();
 
     if (user) {
         return <UserMenu userEmail={user.email || ''} />;
