@@ -12,33 +12,18 @@ const COOKIE_OPTIONS = {
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (isPublicPath(pathname)) {
+  if (isPublicPath(pathname)) 
     return NextResponse.next();
-  }
 
   const accessToken = request.cookies.get("access_token");
   const refreshToken = request.cookies.get("refresh_token");
 
-  // If we have an access token, validate it (might be expired)
+  // Trust existing access token – expiry is enforced by cookie maxAge
   if (accessToken) {
-    try {
-      const authRes = await fetch(getApiUrl("auth"), {
-        method: "GET",
-        headers: {
-          Cookie: request.headers.get("cookie") || "",
-        },
-      });
-      if (authRes.ok) {
-        return NextResponse.next();
-      }
-      // 401 or other error → token invalid or expired, try refresh below
-    } catch {
-      // Network error → allow through, API will return 401 if needed
-      return NextResponse.next();
-    }
+    return NextResponse.next();
   }
 
-  // No valid access token; try refresh if we have refresh_token
+  // No access token but have refresh token → try refresh once
   if (refreshToken) {
     try {
       const res = await fetch(getApiUrl("refresh"), {
@@ -51,32 +36,34 @@ export default async function middleware(request: NextRequest) {
 
       if (!res.ok) {
         if (res.status === 401) {
+          // real invalid/expired → clear cookies + redirect
           return redirectToLogin(request);
         }
+        // backend error → keep cookies, don’t log out
         return NextResponse.next();
       }
 
-      const tokens: { access_token: string; refresh_token: string; expires_in: number } =
-        await res.json();
-
+      const tokens = await res.json();
       const response = NextResponse.next();
 
       response.cookies.set("access_token", tokens.access_token, {
         ...COOKIE_OPTIONS,
         maxAge: tokens.expires_in ?? 3600,
       });
+
       response.cookies.set("refresh_token", tokens.refresh_token, {
         ...COOKIE_OPTIONS,
-        maxAge: 60 * 60 * 24 * 30, // 30 days
+        maxAge: 60 * 60 * 24 * 30,
       });
 
       return response;
-    } catch (error) {
-      console.error("[Middleware] Refresh failed:", error instanceof Error ? error.message : error);
-      return redirectToLogin(request);
+    } catch {
+      // network / backend down → keep cookies, don’t log out
+      return NextResponse.next();
     }
   }
 
+  // No tokens at all
   return redirectToLogin(request);
 }
 

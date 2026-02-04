@@ -1,5 +1,4 @@
 'use server';
-import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { registerServer } from '@/src/app/services/api';
 import type { RegisterState, SignUpResponse } from '@/src/types';
@@ -43,7 +42,7 @@ export async function registerAction(
   if (data.access_token && data.refresh_token) {
     const cookieStore = await cookies();
     
-    // Set Access Token (Short lived)
+    // Set Access Token (short-lived)
     cookieStore.set('access_token', data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -52,7 +51,7 @@ export async function registerAction(
       maxAge: data.expires_in || 3600,
     });
 
-    // Set Refresh Token (Long lived)
+    // Set Refresh Token (long-lived)
     cookieStore.set('refresh_token', data.refresh_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -61,8 +60,8 @@ export async function registerAction(
       maxAge: 60 * 60 * 24 * 30, // 30 Days
     });
 
-    // Redirect to profile
-    redirect('/profile');
+    // Return user to the client; client will update AuthProvider + redirect
+    return { error: undefined, requiresConfirmation: false, user: data.user ?? null };
   }
 
   // If we get here, account was created but no tokens

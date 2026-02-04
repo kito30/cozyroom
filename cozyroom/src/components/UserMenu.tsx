@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { UserIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
 import { logoutAction } from "@/src/app/services/auth";
+import { useAuth } from "@/src/providers/AuthProvider";
 
 interface UserMenuProps {
     userEmail: string;
@@ -12,6 +13,7 @@ interface UserMenuProps {
 
 export default function UserMenu({ userEmail }: UserMenuProps) {
     const router = useRouter();
+    const { setUser } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -38,8 +40,11 @@ export default function UserMenu({ userEmail }: UserMenuProps) {
 
     const handleLogout = async () => {
         await logoutAction();
+        // Clear client-side auth state immediately
+        setUser(null);
         setIsMenuOpen(false);
         router.push('/login');
+        // Optional: ensure server components re-render without cookies
         router.refresh();
     };
 

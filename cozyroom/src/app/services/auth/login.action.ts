@@ -1,5 +1,4 @@
 'use server'
-import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers'
 import { loginServer } from '@/src/app/services/api';
 import type { LoginState, LoginResponse } from '@/src/types';
@@ -39,7 +38,7 @@ export async function loginAction(
   // Only set cookies if login was successful
   const cookieStore = await cookies();
   
-  // Set Access Token (Short lived)
+  // Set Access Token (short-lived)
   if (data.access_token) {
     cookieStore.set('access_token', data.access_token, {
       httpOnly: true,  
@@ -50,6 +49,7 @@ export async function loginAction(
     });
   }
 
+  // Set Refresh Token (long-lived)
   if (data.refresh_token) {
     cookieStore.set('refresh_token', data.refresh_token, {
       httpOnly: true,
@@ -60,5 +60,6 @@ export async function loginAction(
     });
   }
 
-  redirect('/profile'); 
+  // Return user to the client; client will update AuthProvider + redirect
+  return { error: undefined, user: data.user ?? null };
 }

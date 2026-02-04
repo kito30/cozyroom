@@ -6,6 +6,7 @@ import { User } from '@supabase/supabase-js';
  */
 export type LoginState = {
   error?: string | string[];
+  user?: User | null;
 } | null;
 
 /**
@@ -15,6 +16,7 @@ export type LoginState = {
 export type RegisterState = {
   error?: string | string[];
   requiresConfirmation?: boolean;
+  user?: User | null;
 } | null;
 
 /**

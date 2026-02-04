@@ -19,7 +19,6 @@ const AuthContext = createContext<AuthContextType>({
 
 export function AuthProvider({children}: {children: ReactNode}) {
     const [user, setUser] = useState<User | null>(null);
-    const pathname = usePathname();
     
     useEffect(() => {
         const checkAuth = async () => {
@@ -41,7 +40,7 @@ export function AuthProvider({children}: {children: ReactNode}) {
         // Middleware handles token refresh and validation on every request
         // No need for polling - auth state updates when user navigates
         checkAuth();
-    }, [pathname]);
+    }, []);
     
     return (
         <AuthContext.Provider value={{user, setUser, token: null}}>

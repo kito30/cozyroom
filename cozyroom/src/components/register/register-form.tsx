@@ -1,8 +1,11 @@
 'use client';
 import { useFormStatus } from 'react-dom';
-import { useActionState } from 'react';
-import { registerAction, type RegisterState } from '@/src/app/services/auth';
+import { useActionState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+
+import { registerAction, type RegisterState } from '@/src/app/services/auth';
+import { useAuth } from '@/src/providers/AuthProvider';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -19,6 +22,16 @@ function SubmitButton() {
 
 export default function RegisterForm() {
   const [state, formAction] = useActionState<RegisterState, FormData>(registerAction, null);
+  const router = useRouter();
+  const { setUser } = useAuth();
+
+  // When registration succeeds (with tokens), update AuthProvider and navigate
+  useEffect(() => {
+    if (state?.user) {
+      setUser(state.user);
+      router.push('/profile');
+    }
+  }, [state, setUser, router]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-950 to-slate-900 flex items-center justify-center px-4">
