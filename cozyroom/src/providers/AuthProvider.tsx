@@ -1,9 +1,8 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { checkAuthClient } from "@/src/app/services/api";
+import { checkAuthServer } from "@/src/app/services/api/user.api.server";
 
 interface AuthContextType {
     user: User | null;
@@ -17,23 +16,13 @@ const AuthContext = createContext<AuthContextType>({
     token: null,
 });
 
-export function AuthProvider({children}: {children: ReactNode}) {
-    const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({children, initialUser}: {children: ReactNode, initialUser: User | null}) {
+    const [user, setUser] = useState<User | null>(initialUser);
     
     useEffect(() => {
         const checkAuth = async () => {
-            try {
-                const res = await checkAuthClient();
-                if (res && res.ok) {
-                    const data = await res.json();
-                    setUser(data.user);
-                } else {
-                    setUser(null);
-                }
-            } catch (error) {
-                console.error("Auth check failed:", error);
-                setUser(null);
-            }
+            const user = await checkAuthServer();
+            setUser(user);
         }
 
         // Check auth on mount and when pathname changes

@@ -10,8 +10,3 @@ export {
   logoutServer,
   uploadAvatarServer,
 } from './user.api.server';
-
-// Client-side API calls
-export {
-  checkAuthClient,
-} from './user.api.client';

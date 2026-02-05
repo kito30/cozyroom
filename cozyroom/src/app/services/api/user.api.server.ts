@@ -22,9 +22,12 @@ export const checkAuthServer = async () => {
             headers,
             cache: 'no-store'
         });
-        return res;
-    } catch (error) {
-        console.error("[checkAuthServer] Error:", error);
+        if(res.ok) {
+            const data = await res.json();
+            return data.user;
+        }
+        return null;
+    } catch {
         return null;
     }
 }
@@ -43,8 +46,7 @@ export const getProfileServer = async () => {
             cache: 'no-store'
         });
         return res;
-    } catch (error) {
-        console.error("[getProfileServer] Error:", error);
+    } catch {
         return null;
     }
 }
@@ -144,8 +146,7 @@ export const uploadAvatarServer = async (formData: FormData) => {
             cache: 'no-store'
         });
         return res;
-    } catch (error) {
-        console.error("[uploadAvatarServer] Error:", error);
+    } catch {
         return null;
     }
 }
