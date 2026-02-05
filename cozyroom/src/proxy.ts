@@ -73,8 +73,8 @@ function redirectToLogin(request: NextRequest) {
   const response = NextResponse.redirect(loginUrl);
 
   // Clear cookies by setting maxAge: 0 with same path/options
-  response.cookies.set("access_token", "", { ...COOKIE_OPTIONS, maxAge: 0 });
-  response.cookies.set("refresh_token", "", { ...COOKIE_OPTIONS, maxAge: 0 });
+  response.cookies.delete("access_token");
+  response.cookies.delete("refresh_token");
 
   return response;
 }

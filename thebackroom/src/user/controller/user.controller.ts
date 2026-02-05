@@ -96,38 +96,36 @@ export class UserController {
     async checkAuth(@Req() req: Request) {
         // Soft check endpoint - always returns 200, with user or null
         // Used by frontend to check auth state without throwing errors
-        const token = req.cookies['access_token'] as string | undefined;
+        const accessToken = req.cookies['access_token'] as string | undefined;
         const refreshToken = req.cookies['refresh_token'] as string | undefined;
         
-        if (!token) {
-            return { user: null };
+        if(accessToken) {
+            try {
+                const user = await this.userService.getAuth(accessToken);
+                return { user };
+            } catch {
+                //ignore
+            }
         }
         
-        try {
-            // Try to validate the access token first
-            const user = await this.userService.getAuth(token);
-            return { user };
-        } catch {
-            // Access token is invalid/expired - try to refresh if refresh_token exists
-            if (refreshToken) {
-                try {
-                    const tokens = await this.userService.refreshToken(refreshToken);
-                    // Return both user and new tokens so middleware can update cookies
-                    const user = await this.userService.getAuth(tokens.access_token);
-                    return {
-                        user,
-                        access_token: tokens.access_token,
-                        refresh_token: tokens.refresh_token,
-                        expires_in: tokens.expires_in,
-                    };
-                } catch {
-                    // Refresh failed - return null
-                    return { user: null };
+        if(refreshToken) {
+            try {
+                const tokens = await this.userService.refreshToken(refreshToken);
+
+                const user = await this.userService.getAuth(tokens.access_token);
+
+                return {
+                    user,
+                    access_token: tokens.access_token,
+                    refresh_token: tokens.refresh_token,
+                    expires_in: tokens.expires_in,
                 }
             }
-            // No refresh token - return null
-            return { user: null };
+            catch {
+                return { user: null };
+            }
         }
+        return { user: null };
     }
     @Get('profile')
     @UseGuards(AuthGuard)
