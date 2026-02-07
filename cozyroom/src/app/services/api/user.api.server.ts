@@ -2,7 +2,7 @@
 
 import { getApiUrl } from "@/src/config/api";
 import { cookies } from "next/headers";
-import type { ProfileUpdatePayload } from "@/src/types";
+import type { Profile, ProfileUpdatePayload } from "@/src/types";
 
 /**
  * Server-side auth check
@@ -32,7 +32,7 @@ export const checkAuthServer = async () => {
     }
 }
 
-export const getProfileServer = async () => {
+export const getProfileServer = async (): Promise<Profile | null> => {
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
     try {
@@ -45,7 +45,9 @@ export const getProfileServer = async () => {
             },
             cache: 'no-store'
         });
-        return res;
+        if (!res.ok) return null;
+        const data = await res.json();
+        return (data.profile ?? data) as Profile;
     } catch {
         return null;
     }
@@ -66,8 +68,7 @@ export const updateProfileServer = async (profileData: ProfileUpdatePayload) => 
             cache: 'no-store'
         });
         return res;
-    } catch (error) {
-        console.error("[updateProfileServer] Error:", error);
+    } catch {
         return null;
     }
 }
@@ -128,13 +129,13 @@ export const logoutServer = async () => {
     }
 }
 
-/**
- * Upload avatar via backend API
- */
-export const uploadAvatarServer = async (formData: FormData) => {
+/** Returns the image URL on success, null on failure. */
+export const uploadAvatarServer = async (
+    formData: FormData
+): Promise<string | null> => {
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
-    
+
     try {
         const apiUrl = getApiUrl('avatar');
         const res = await fetch(apiUrl, {
@@ -145,7 +146,9 @@ export const uploadAvatarServer = async (formData: FormData) => {
             body: formData,
             cache: 'no-store'
         });
-        return res;
+        if (!res.ok) return null;
+        const data = await res.json().catch(() => ({}));
+        return data.url ?? null;
     } catch {
         return null;
     }

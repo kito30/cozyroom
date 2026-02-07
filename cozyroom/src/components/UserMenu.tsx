@@ -1,17 +1,21 @@
 'use client';
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { UserIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
 import { logoutAction } from "@/src/app/services/auth";
 import { useAuth } from "@/src/providers/AuthProvider";
+import { useProfileOptional } from "@/src/providers/ProfileProvider";
 
 interface UserMenuProps {
     userEmail: string;
 }
 
 export default function UserMenu({ userEmail }: UserMenuProps) {
+    const profile = useProfileOptional();
+    const avatarUrl = profile?.avatar_url ?? null;
     const router = useRouter();
     const { setUser } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -54,8 +58,18 @@ export default function UserMenu({ userEmail }: UserMenuProps) {
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-slate-300 ring-1 ring-slate-700/70 transition hover:bg-slate-800/80 hover:text-slate-50"
             >
-                <div className="h-6 w-6 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-xs font-bold text-slate-900">
-                    {userEmail.charAt(0).toUpperCase()}
+                <div className="h-6 w-6 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-xs font-bold text-slate-900 overflow-hidden shrink-0">
+                    {avatarUrl ? (
+                        <Image
+                            src={avatarUrl}
+                            alt=""
+                            width={24}
+                            height={24}
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        userEmail.charAt(0).toUpperCase()
+                    )}
                 </div>
                 <span className="max-w-[120px] truncate">
                     {userEmail.split('@')[0]}

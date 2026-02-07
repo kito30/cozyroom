@@ -27,17 +27,14 @@ export async function uploadAvatarAction(formData: FormData): Promise<AvatarUplo
     }
 
     // Upload via backend API
-    const response = await uploadAvatarServer(formData);
+    const url = await uploadAvatarServer(formData);
 
-    if (!response?.ok) {
-      const errorText = response ? await response.text() : 'Unknown error';
-      console.error('[UploadAvatar] Upload failed:', errorText);
+    if (!url) {
+      console.error('[UploadAvatar] Upload failed');
       return { error: 'Failed to upload image' };
     }
 
-    const result = await response.json();
-    
-    return { url: result.url };
+    return { url };
   } catch (error) {
     console.error('[UploadAvatar] Error:', error);
     return { error: 'Failed to upload image' };

@@ -1,22 +1,26 @@
 import Nav from '@/src/components/nav';
 import './globals.css';
 import { AuthProvider } from '@/src/providers/AuthProvider';
-import { checkAuthServer } from './services/api/user.api.server';
+import { ProfileProvider } from '@/src/providers/ProfileProvider';
+import { getLayoutSession } from './services/api';
 
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const user = await checkAuthServer();
+  const { user, profile } = await getLayoutSession();
+
   return (
     <html>
       <body>
         <AuthProvider initialUser={user}>
-          <Nav />
-          {children}
+          <ProfileProvider profile={profile}>
+            <Nav />
+            {children}
+          </ProfileProvider>
         </AuthProvider>
-        </body>
+      </body>
     </html>
   )
 }
