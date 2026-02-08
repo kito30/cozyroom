@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { UserIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
+import { UserIcon, ChatBubbleLeftRightIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
 import { logoutAction } from "@/src/app/services/auth";
 import { useAuth } from "@/src/providers/AuthProvider";
 import { useProfileOptional } from "@/src/providers/ProfileProvider";
@@ -86,6 +86,14 @@ export default function UserMenu({ userEmail }: UserMenuProps) {
                         >
                             <UserIcon className="w-4 h-4 " />
                             Profile
+                        </Link>
+                        <Link
+                            href="/chat"
+                            onClick={() => setIsMenuOpen(false)}
+                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-300 transition hover:bg-slate-800 hover:text-slate-50"
+                        >
+                            <ChatBubbleLeftRightIcon className="w-4 h-4 " />
+                            Chat
                         </Link>
                         <button
                             onClick={handleLogout}

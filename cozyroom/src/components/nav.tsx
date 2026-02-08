@@ -31,6 +31,12 @@ export default function Nav() {
                     >
                         Home
                     </Link>
+                    <Link
+                        href="/chat"
+                        className="rounded-lg px-3 py-1.5 text-slate-300 transition hover:bg-slate-900 hover:text-slate-50"
+                    >
+                        Chat
+                    </Link>
 
                     <Suspense fallback={<AuthStatusFallback />}>
                         <AuthStatus />

@@ -2,6 +2,8 @@ export const ROUTES = {
   login: "/login",
   register: "/register",
   home: "/",
+  chat: "/chat",
+  profile: "/profile",
 };
 
 // The Master List of Public Routes
