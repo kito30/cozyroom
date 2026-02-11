@@ -6,54 +6,17 @@ import ChatInput from './chat-input';
 import ChatSidebar from './chat-sidebar';
 import type { ChatMessage, RoomMember } from '@/src/types';
 import { useProfileOptional } from '@/src/providers/ProfileProvider';
-
-// Mock data for UI demo - replace with API calls later
-const MOCK_ROOM_NAME = 'General';
-const MOCK_MEMBERS: RoomMember[] = [
-  { id: '1', full_name: 'Alice', avatar_url: null, email: 'alice@example.com' },
-  { id: '2', full_name: 'Bob', avatar_url: null, email: 'bob@example.com' },
-  { id: '3', full_name: 'Carol', avatar_url: null, email: 'carol@example.com' },
-];
-// Fixed timestamps to avoid hydration mismatch (Date.now() differs between server/client)
-const MOCK_MESSAGES: ChatMessage[] = [
-  {
-    id: '1',
-    room_id: 'room-1',
-    sender_id: '1',
-    sender_name: 'Alice',
-    sender_avatar: null,
-    content: 'Hey everyone! Welcome to the chat.',
-    created_at: '2025-02-06T14:30:00.000Z',
-  },
-  {
-    id: '2',
-    room_id: 'room-1',
-    sender_id: '2',
-    sender_name: 'Bob',
-    sender_avatar: null,
-    content: 'Thanks! Glad to be here.',
-    created_at: '2025-02-06T14:35:00.000Z',
-  },
-  {
-    id: '3',
-    room_id: 'room-1',
-    sender_id: '1',
-    sender_name: 'Alice',
-    sender_avatar: null,
-    content: 'How is everyone doing today?',
-    created_at: '2025-02-06T14:40:00.000Z',
-  },
-];
+import { v4 as uuidv4} from 'uuid';
 
 export default function ChatPage() {
   const profile = useProfileOptional();
-  const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
-  const [members] = useState<RoomMember[]>(MOCK_MEMBERS);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [members] = useState<RoomMember[]>([]);
 
   const handleSend = useCallback(
     (content: string) => {
       const newMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         room_id: 'room-1',
         sender_id: profile?.email ?? 'anonymous',
         sender_name: profile?.full_name || profile?.email || 'You',
@@ -77,7 +40,7 @@ export default function ChatPage() {
       </div>
 
       {/* Right sidebar - users in room */}
-      <ChatSidebar roomName={MOCK_ROOM_NAME} members={members} />
+      <ChatSidebar roomName="General" members={members} />
     </div>
   );
 }

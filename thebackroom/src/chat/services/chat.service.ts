@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createSupabaseClient } from 'src/utils/supabase/client';
+import type { ChatMessage } from '../types/chat';
 
 @Injectable()
 export class ChatService {
@@ -11,7 +12,7 @@ export class ChatService {
      * Fetch chat messages from the database.
      * Assumes a `messages` table exists in Supabase.
      */
-    async getMessages(token: string | undefined, limit = 50) {
+    async getMessages(token: string | undefined, limit = 50): Promise<ChatMessage[]> {
         try {
             const supabase = this.getClient(token);
 
@@ -26,7 +27,7 @@ export class ChatService {
                 throw new InternalServerErrorException('Failed to fetch messages');
             }
 
-            return data ?? [];
+            return (data ?? []) as ChatMessage[];
         } catch (error) {
             if (error instanceof InternalServerErrorException) {
                 throw error;
