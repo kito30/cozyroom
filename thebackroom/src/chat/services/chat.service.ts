@@ -37,5 +37,35 @@ export class ChatService {
             throw new InternalServerErrorException('An unexpected error occurred while fetching messages');
         }
     }
+    
+    async createMessage(
+        token: string | undefined,
+        message: ChatMessage
+    ): Promise<{status:number, statusText: string}> {
+        try {
+            const supabase = this.getClient(token);
+
+            const response = await supabase
+                .from('messages')
+                .insert(message)
+                .select('*')
+                .single();
+
+            if (response.error || !response.data || response.status !== 201) {
+                console.error('[ChatService.createMessage] Supabase error:', response.error);
+                throw new InternalServerErrorException(
+                    `Failed to create message: ${response.statusText ?? response.error?.message ?? 'Unknown error'}`,
+                );
+            }
+
+            return {status: response.status, statusText: response.statusText};
+        } catch (error) {
+            if (error instanceof InternalServerErrorException) {
+                throw error;
+            }
+
+            throw new InternalServerErrorException('An unexpected error occurred while creating message');
+        }
+    }
 }
 

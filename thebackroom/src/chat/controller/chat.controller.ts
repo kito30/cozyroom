@@ -3,10 +3,6 @@ import type { Request } from 'express';
 import { ChatService } from '../services/chat.service';
 import { AuthGuard } from 'src/user/guards/auth.guard';
 
-interface AuthenticatedRequest extends Request {
-    cookies: Record<string, string>;
-}
-
 @Controller('chat')
 export class ChatController {
     constructor(
@@ -34,5 +30,10 @@ export class ChatController {
         const messages = await this.chatService.getMessages(token, numericLimit);
         return { messages };
     }
+    @Post('messages')
+    @UseGuards(AuthGuard)
+    async createMessage(
+        @Req() req: Request,
+    )
 }
 

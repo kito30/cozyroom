@@ -2,14 +2,18 @@
 
 import { getApiUrl } from "@/src/config/api";
 import { cookies } from "next/headers";
-import type { Profile, ProfileUpdatePayload } from "@/src/types";
+import type { ChatMessage, Profile, ProfileUpdatePayload } from "@/src/types";
+
+const getCookieHeader = async (): Promise<string> => {
+    const cookieStore = await cookies();
+    return cookieStore.toString();
+};
 
 /**
  * Server-side auth check
  */
 export const checkAuthServer = async () => {  
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
+    const cookieHeader = await getCookieHeader();
     try {
         const apiUrl = getApiUrl('auth');
         const headers: HeadersInit = {
@@ -33,8 +37,7 @@ export const checkAuthServer = async () => {
 }
 
 export const getProfileServer = async (): Promise<Profile | null> => {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
+    const cookieHeader = await getCookieHeader();
     try {
         const apiUrl = getApiUrl('profile');
         const res = await fetch(apiUrl, {
@@ -54,8 +57,7 @@ export const getProfileServer = async (): Promise<Profile | null> => {
 }
 
 export const updateProfileServer = async (profileData: ProfileUpdatePayload) => {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
+    const cookieHeader = await getCookieHeader();
     try {
         const apiUrl = getApiUrl('profile');
         const res = await fetch(apiUrl, {
@@ -110,8 +112,7 @@ export const registerServer = async (email: string, password: string, confirm_pa
 }
 
 export const logoutServer = async () => {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
+    const cookieHeader = await getCookieHeader();
     try {
         const apiUrl = getApiUrl('logout');
         const res = await fetch(apiUrl, {
@@ -133,9 +134,7 @@ export const logoutServer = async () => {
 export const uploadAvatarServer = async (
     formData: FormData
 ): Promise<string | null> => {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
-
+    const cookieHeader = await getCookieHeader();
     try {
         const apiUrl = getApiUrl('avatar');
         const res = await fetch(apiUrl, {
@@ -151,5 +150,29 @@ export const uploadAvatarServer = async (
         return data.url ?? null;
     } catch {
         return null;
+    }
+}
+export const getMessages = async (): Promise<ChatMessage[]> => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl('chat/messages');
+        const res = await fetch(apiUrl, {
+            method: "GET",
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader
+            },
+            cache: 'no-store'
+        });
+
+        if (!res.ok) {
+            return [];
+        }
+
+        const data = await res.json();
+        const messages = (data.messages ?? data) as ChatMessage[] | undefined;
+        return messages ?? [];
+    } catch {
+        return [];
     }
 }
