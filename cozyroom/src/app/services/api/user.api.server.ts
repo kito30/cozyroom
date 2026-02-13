@@ -15,7 +15,7 @@ const getCookieHeader = async (): Promise<string> => {
 export const checkAuthServer = async () => {  
     const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('auth');
+        const apiUrl = getApiUrl('auth/me');
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
             Cookie: cookieHeader
@@ -39,7 +39,7 @@ export const checkAuthServer = async () => {
 export const getProfileServer = async (): Promise<Profile | null> => {
     const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('profile');
+        const apiUrl = getApiUrl('users/me/profile');
         const res = await fetch(apiUrl, {
             method: "GET",
             headers: {
@@ -59,7 +59,7 @@ export const getProfileServer = async (): Promise<Profile | null> => {
 export const updateProfileServer = async (profileData: ProfileUpdatePayload) => {
     const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('profile');
+        const apiUrl = getApiUrl('users/me/profile');
         const res = await fetch(apiUrl, {
             method: "PATCH",
             headers: {
@@ -77,7 +77,7 @@ export const updateProfileServer = async (profileData: ProfileUpdatePayload) => 
 
 export const loginServer = async (email: string, password: string) => {
     try {
-        const apiUrl = getApiUrl('login');
+        const apiUrl = getApiUrl('auth/login');
         const res = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -95,7 +95,7 @@ export const loginServer = async (email: string, password: string) => {
 
 export const registerServer = async (email: string, password: string, confirm_password: string) => {
     try {
-        const apiUrl = getApiUrl('signup');
+        const apiUrl = getApiUrl('auth/register');
         const res = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -114,7 +114,7 @@ export const registerServer = async (email: string, password: string, confirm_pa
 export const logoutServer = async () => {
     const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('logout');
+        const apiUrl = getApiUrl('auth/logout');
         const res = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -136,7 +136,7 @@ export const uploadAvatarServer = async (
 ): Promise<string | null> => {
     const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('avatar');
+        const apiUrl = getApiUrl('users/me/avatar');
         const res = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -152,10 +152,10 @@ export const uploadAvatarServer = async (
         return null;
     }
 }
-export const getMessages = async (): Promise<ChatMessage[]> => {
+export const getMessages = async (roomId: string = 'room-1'): Promise<ChatMessage[]> => {
     const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('chat/messages');
+        const apiUrl = getApiUrl(`chat/rooms/${roomId}/messages`);
         const res = await fetch(apiUrl, {
             method: "GET",
             headers: {
@@ -174,5 +174,27 @@ export const getMessages = async (): Promise<ChatMessage[]> => {
         return messages ?? [];
     } catch {
         return [];
+    }
+}
+
+export const postMessage = async (roomId: string, content: string) => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl(`chat/rooms/${roomId}/messages`);
+        const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader
+            },
+            body: JSON.stringify({ content }),
+            cache: 'no-store'
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.message ?? null;
+    } catch (error) {
+        console.error("[postMessage] Error:", error);
+        return null;
     }
 }

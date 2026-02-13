@@ -23,7 +23,7 @@ export default async function middleware(request: NextRequest) {
 
   if (refreshToken) {
     try {
-      const res = await fetch(getApiUrl("refresh"), {
+      const res = await fetch(getApiUrl("auth/refresh"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

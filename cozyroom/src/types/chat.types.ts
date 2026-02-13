@@ -5,10 +5,17 @@ export interface ChatMessage {
   id: string;
   room_id: string;
   sender_id: string;
-  sender_name: string;
-  sender_avatar?: string | null;
   content: string;
   created_at: string;
+}
+
+/**
+ * Chat message data for creating a new message (without id and created_at)
+ */
+export interface CreateChatMessage {
+  room_id: string;
+  sender_id: string;
+  content: string;
 }
 
 /**

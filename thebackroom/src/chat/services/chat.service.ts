@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createSupabaseClient } from 'src/utils/supabase/client';
-import type { ChatMessage } from '../types/chat';
+import type { ChatMessage, CreateChatMessage } from '../types/chat';
 
 @Injectable()
 export class ChatService {
@@ -9,18 +9,25 @@ export class ChatService {
     }
 
     /**
-     * Fetch chat messages from the database.
+     * Fetch chat messages from the database for a specific room.
      * Assumes a `messages` table exists in Supabase.
      */
-    async getMessages(token: string | undefined, limit = 50): Promise<ChatMessage[]> {
+    async getMessages(token: string | undefined, limit = 50, roomId?: string): Promise<ChatMessage[]> {
         try {
             const supabase = this.getClient(token);
 
-            const { data, error } = await supabase
+            let query = supabase
                 .from('messages')
                 .select('*')
                 .order('created_at', { ascending: true })
                 .limit(limit);
+
+            // Filter by room_id if provided
+            if (roomId) {
+                query = query.eq('room_id', roomId);
+            }
+
+            const { data, error } = await query;
 
             if (error) {
                 console.error('[ChatService.getMessages] Supabase error:', error);
@@ -38,10 +45,13 @@ export class ChatService {
         }
     }
     
+    /**
+     * Create a new chat message in the database.
+     */
     async createMessage(
         token: string | undefined,
-        message: ChatMessage
-    ): Promise<{status:number, statusText: string}> {
+        message: CreateChatMessage
+    ): Promise<ChatMessage> {
         try {
             const supabase = this.getClient(token);
 
@@ -51,14 +61,14 @@ export class ChatService {
                 .select('*')
                 .single();
 
-            if (response.error || !response.data || response.status !== 201) {
+            if (response.error || !response.data) {
                 console.error('[ChatService.createMessage] Supabase error:', response.error);
                 throw new InternalServerErrorException(
-                    `Failed to create message: ${response.statusText ?? response.error?.message ?? 'Unknown error'}`,
+                    `Failed to create message: ${response.error?.message ?? 'Unknown error'}`,
                 );
             }
 
-            return {status: response.status, statusText: response.statusText};
+            return response.data as ChatMessage;
         } catch (error) {
             if (error instanceof InternalServerErrorException) {
                 throw error;
