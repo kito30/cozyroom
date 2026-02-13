@@ -2,7 +2,7 @@
 
 import { getApiUrl } from "@/src/config/api";
 import { cookies } from "next/headers";
-import type { ChatMessage, Profile, ProfileUpdatePayload } from "@/src/types";
+import type { ChatMessage, Profile, ProfileUpdatePayload, Room } from "@/src/types";
 
 const getCookieHeader = async (): Promise<string> => {
     const cookieStore = await cookies();
@@ -195,6 +195,53 @@ export const postMessage = async (roomId: string, content: string) => {
         return data.message ?? null;
     } catch (error) {
         console.error("[postMessage] Error:", error);
+        return null;
+    }
+}
+
+export const getUserRooms = async (): Promise<string[]> => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl('chat/rooms');
+        const res = await fetch(apiUrl, {
+            method: "GET",
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader
+            },
+            cache: 'no-store'
+        });
+
+        if (!res.ok) {
+            return [];
+        }
+
+        const data = await res.json();
+        // API returns array directly, not wrapped in object
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
+}
+
+export const createRoom = async (name: string): Promise<Room | null> => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl('chat/rooms');
+        const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader
+            },
+            body: JSON.stringify({ name }),
+            cache: 'no-store'
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.room ?? null;
+    } catch (error) {
+        console.error("[createRoom] Error:", error);
         return null;
     }
 }

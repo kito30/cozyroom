@@ -9,6 +9,7 @@ interface AuthenticatedRequest extends Request {
     user: User;
 }
 
+
 @Controller('chat')
 export class ChatController {
     constructor(
@@ -64,6 +65,39 @@ export class ChatController {
 
         const createdMessage = await this.chatService.createMessage(token, message);
         return { message: createdMessage };
+    }
+
+    /**
+     * Get all room IDs that the current user is a member of
+     */
+    @Get('rooms')
+    @UseGuards(AuthGuard)
+    async getUserRooms(@Req() req: AuthenticatedRequest) {
+        const token = req.cookies?.['access_token'] as string | undefined;
+        const user = req.user;
+
+        const roomIds = await this.chatService.getUserRooms(token, user.id);
+        return roomIds;
+    }
+
+    /**
+     * Create a new room
+     */
+    @Post('rooms')
+    @UseGuards(AuthGuard)
+    async createRoom(
+        @Req() req: AuthenticatedRequest,
+        @Body() body: { name: string },
+    ) {
+        const token = req.cookies?.['access_token'] as string | undefined;
+        const user = req.user;
+
+        if (!body?.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
+            throw new BadRequestException('Room name is required');
+        }
+
+        const room = await this.chatService.createRoom(token, user.id, body.name.trim());
+        return { room };
     }
 }
 

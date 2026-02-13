@@ -19,6 +19,15 @@ export interface CreateChatMessage {
 }
 
 /**
+ * Chat room
+ */
+export interface Room {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+/**
  * User in a chat room (for sidebar)
  */
 export interface RoomMember {

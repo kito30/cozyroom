@@ -12,3 +12,9 @@ export interface CreateChatMessage {
     content: string;
 }
 
+export interface Room {
+    id: string;
+    name: string;
+    created_at: string;
+}
+

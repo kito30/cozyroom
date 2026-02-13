@@ -15,4 +15,4 @@ export type {
 } from './profile.types';
 
 // Chat types
-export type { ChatMessage, RoomMember } from './chat.types';
+export type { ChatMessage, RoomMember, Room } from './chat.types';
