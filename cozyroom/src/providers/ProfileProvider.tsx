@@ -5,8 +5,7 @@ import type { Profile } from '@/src/types';
 
 const ProfileContext = createContext<Profile | null>(null);
 
-/** Props: values that exist in the Profile type (email, full_name, avatar_url, bio, phone) */
-type ProfileProviderProps = { profile: Profile; children: ReactNode };
+type ProfileProviderProps = { profile: Profile | null; children: ReactNode };
 
 export function ProfileProvider({ children, profile }: ProfileProviderProps) {
   return (
@@ -16,10 +15,16 @@ export function ProfileProvider({ children, profile }: ProfileProviderProps) {
   );
 }
 
+/** Use when profile is required (e.g. profile page). Throws if no profile. */
 export function useProfile() {
   const context = useContext(ProfileContext);
   if (!context) {
     throw new Error('useProfile must be used within a ProfileProvider');
   }
   return context;
+}
+
+/** Use when profile is optional (e.g. navbar). Returns null if no profile. */
+export function useProfileOptional(): Profile | null {
+  return useContext(ProfileContext);
 }

@@ -13,3 +13,6 @@ export type {
   ProfileUpdatePayload,
   AvatarUploadResult,
 } from './profile.types';
+
+// Chat types
+export type { ChatMessage, RoomMember, Room } from './chat.types';

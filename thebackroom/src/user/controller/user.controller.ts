@@ -9,8 +9,8 @@ interface AuthenticatedRequest extends Request {
     user: User;
 }
 
-@Controller()
-export class UserController {
+@Controller('auth')
+export class AuthController {
     constructor(
         private readonly userService: UserService
     ) {}
@@ -52,8 +52,8 @@ export class UserController {
         }
     }
 
-    @Post('signup')
-    async signup(
+    @Post('register')
+    async register(
         @Body() body: { email: string; password: string; confirm_password: string }
     ) {
         // Validate request body
@@ -84,7 +84,7 @@ export class UserController {
             
         } catch (error: unknown) {
             // Log error for debugging
-            console.error('[SignUp Controller] Error:', error);
+            console.error('[Register Controller] Error:', error);
             // Re-throw to let NestJS handle the response
             if (error instanceof Error) {
                 throw error;
@@ -92,8 +92,9 @@ export class UserController {
             throw new BadRequestException('An unexpected error occurred');
         }
     }
-    @Get('auth')
-    async checkAuth(@Req() req: Request) {
+
+    @Get('me')
+    async getSession(@Req() req: Request) {
         // Soft check endpoint - always returns 200, with user or null
         // Used by frontend to check auth state without throwing errors
         const accessToken = req.cookies['access_token'] as string | undefined;
@@ -127,7 +128,37 @@ export class UserController {
         }
         return { user: null };
     }
-    @Get('profile')
+
+    @Post('refresh')
+    async refresh(@Req() req: Request): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
+        const refreshToken = req.cookies['refresh_token'] as string | undefined;
+        if (!refreshToken) {
+            throw new BadRequestException('Refresh token is required');
+        }
+        const tokens = await this.userService.refreshToken(refreshToken);
+        return {
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_in: tokens.expires_in,
+        };
+    }
+
+    @Post('logout')
+    @UseGuards(AuthGuard)
+    logout() {
+        // Logout is handled client-side by clearing cookies
+        // This endpoint confirms logout and can be used for server-side cleanup if needed
+        return { message: 'Logged out successfully' };
+    }
+}
+
+@Controller('users')
+export class UserController {
+    constructor(
+        private readonly userService: UserService
+    ) {}
+
+    @Get('me/profile')
     @UseGuards(AuthGuard)
     async getProfile(@Req() req: AuthenticatedRequest) {
         const token = req.cookies['access_token'] as string;
@@ -138,7 +169,7 @@ export class UserController {
         };
     }
 
-    @Patch('profile')
+    @Patch('me/profile')
     @UseGuards(AuthGuard)
     async updateProfile(
         @Req() req: AuthenticatedRequest,
@@ -163,21 +194,7 @@ export class UserController {
         };
     }
 
-    @Post('refresh')
-    async refresh(@Req() req: Request): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
-        const refreshToken = req.cookies['refresh_token'] as string | undefined;
-        if (!refreshToken) {
-            throw new BadRequestException('Refresh token is required');
-        }
-        const tokens = await this.userService.refreshToken(refreshToken);
-        return {
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-            expires_in: tokens.expires_in,
-        };
-    }
-
-    @Post('avatar')
+    @Post('me/avatar')
     @UseGuards(AuthGuard)
     @UseInterceptors(FileInterceptor('avatar'))
     async uploadAvatar(

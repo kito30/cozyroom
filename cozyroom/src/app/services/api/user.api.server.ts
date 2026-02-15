@@ -2,16 +2,20 @@
 
 import { getApiUrl } from "@/src/config/api";
 import { cookies } from "next/headers";
-import type { ProfileUpdatePayload } from "@/src/types";
+import type { ChatMessage, Profile, ProfileUpdatePayload, Room, RoomMember } from "@/src/types";
+
+const getCookieHeader = async (): Promise<string> => {
+    const cookieStore = await cookies();
+    return cookieStore.toString();
+};
 
 /**
  * Server-side auth check
  */
 export const checkAuthServer = async () => {  
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
+    const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('auth');
+        const apiUrl = getApiUrl('auth/me');
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
             Cookie: cookieHeader
@@ -32,11 +36,10 @@ export const checkAuthServer = async () => {
     }
 }
 
-export const getProfileServer = async () => {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
+export const getProfileServer = async (): Promise<Profile | null> => {
+    const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('profile');
+        const apiUrl = getApiUrl('users/me/profile');
         const res = await fetch(apiUrl, {
             method: "GET",
             headers: {
@@ -45,17 +48,18 @@ export const getProfileServer = async () => {
             },
             cache: 'no-store'
         });
-        return res;
+        if (!res.ok) return null;
+        const data = await res.json();
+        return (data.profile ?? data) as Profile;
     } catch {
         return null;
     }
 }
 
 export const updateProfileServer = async (profileData: ProfileUpdatePayload) => {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
+    const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('profile');
+        const apiUrl = getApiUrl('users/me/profile');
         const res = await fetch(apiUrl, {
             method: "PATCH",
             headers: {
@@ -66,15 +70,14 @@ export const updateProfileServer = async (profileData: ProfileUpdatePayload) => 
             cache: 'no-store'
         });
         return res;
-    } catch (error) {
-        console.error("[updateProfileServer] Error:", error);
+    } catch {
         return null;
     }
 }
 
 export const loginServer = async (email: string, password: string) => {
     try {
-        const apiUrl = getApiUrl('login');
+        const apiUrl = getApiUrl('auth/login');
         const res = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -92,7 +95,7 @@ export const loginServer = async (email: string, password: string) => {
 
 export const registerServer = async (email: string, password: string, confirm_password: string) => {
     try {
-        const apiUrl = getApiUrl('signup');
+        const apiUrl = getApiUrl('auth/register');
         const res = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -109,10 +112,9 @@ export const registerServer = async (email: string, password: string, confirm_pa
 }
 
 export const logoutServer = async () => {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
+    const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('logout');
+        const apiUrl = getApiUrl('auth/logout');
         const res = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -128,15 +130,13 @@ export const logoutServer = async () => {
     }
 }
 
-/**
- * Upload avatar via backend API
- */
-export const uploadAvatarServer = async (formData: FormData) => {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
-    
+/** Returns the image URL on success, null on failure. */
+export const uploadAvatarServer = async (
+    formData: FormData
+): Promise<string | null> => {
+    const cookieHeader = await getCookieHeader();
     try {
-        const apiUrl = getApiUrl('avatar');
+        const apiUrl = getApiUrl('users/me/avatar');
         const res = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -145,8 +145,123 @@ export const uploadAvatarServer = async (formData: FormData) => {
             body: formData,
             cache: 'no-store'
         });
-        return res;
+        if (!res.ok) return null;
+        const data = await res.json().catch(() => ({}));
+        return data.url ?? null;
     } catch {
+        return null;
+    }
+}
+export const getRoomMembers = async (roomId: string): Promise<RoomMember[]> => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl(`chat/rooms/${roomId}/members`);
+        const res = await fetch(apiUrl, {
+            method: "GET",
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader
+            },
+            cache: 'no-store'
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        const members = (data.members ?? data) as RoomMember[] | undefined;
+        return Array.isArray(members) ? members : [];
+    } catch {
+        return [];
+    }
+};
+
+export const getMessages = async (roomId: string = 'room-1'): Promise<ChatMessage[]> => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl(`chat/rooms/${roomId}/messages`);
+        const res = await fetch(apiUrl, {
+            method: "GET",
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader
+            },
+            cache: 'no-store'
+        });
+
+        if (!res.ok) {
+            return [];
+        }
+
+        const data = await res.json();
+        const messages = (data.messages ?? data) as ChatMessage[] | undefined;
+        return messages ?? [];
+    } catch {
+        return [];
+    }
+}
+
+export const postMessage = async (roomId: string, content: string) => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl(`chat/rooms/${roomId}/messages`);
+        const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader
+            },
+            body: JSON.stringify({ content }),
+            cache: 'no-store'
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.message ?? null;
+    } catch (error) {
+        console.error("[postMessage] Error:", error);
+        return null;
+    }
+}
+
+export const getUserRooms = async (): Promise<Room[]> => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl('chat/rooms');
+        const res = await fetch(apiUrl, {
+            method: "GET",
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader
+            },
+            cache: 'no-store'
+        });
+
+        if (!res.ok) {
+            return [];
+        }
+
+        const data = await res.json();
+        return Array.isArray(data) ? (data as Room[]) : [];
+    } catch {
+        return [];
+    }
+}
+
+export const createRoom = async (name: string): Promise<Room | null> => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl('chat/rooms');
+        const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader
+            },
+            body: JSON.stringify({ name }),
+            cache: 'no-store'
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.room ?? null;
+    } catch (error) {
+        console.error("[createRoom] Error:", error);
         return null;
     }
 }

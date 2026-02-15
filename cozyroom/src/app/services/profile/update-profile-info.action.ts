@@ -42,24 +42,19 @@ export async function updateProfileInfoAction(
       const avatarFormData = new FormData();
       avatarFormData.append('avatar', avatarFile);
       
-      const uploadResponse = await uploadAvatarServer(avatarFormData);
+      const avatarUrl = await uploadAvatarServer(avatarFormData);
 
-      if (!uploadResponse?.ok) {
+      if (!avatarUrl) {
         return { error: 'Failed to upload avatar image' };
       }
 
-      const uploadResult = await uploadResponse.json();
-      profileUpdate.avatar_url = uploadResult.url; // Add new avatar URL to update
+      profileUpdate.avatar_url = avatarUrl;
     }
-    // If no new avatar file, don't update avatar_url field (keeps existing one in DB)
-    console.log('profileUpdate', profileUpdate);
     // Update profile with provided data only
-    const res = await updateProfileServer(profileUpdate);
+    const profile = await updateProfileServer(profileUpdate);
 
-    if (!res || !res.ok) {
-      const data = res ? await res.json() : {};
-      const errorMessage = data.message || data.error || 'Failed to update profile';
-      return { error: errorMessage };
+    if (!profile) {
+      return { error: 'Failed to update profile' };
     }
 
     // Revalidate the profile page to show updated data

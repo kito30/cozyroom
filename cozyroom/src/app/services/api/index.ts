@@ -1,5 +1,7 @@
 // API Services - Backend API calls
 
+export { getLayoutSession, type LayoutSession } from './layout-session.server';
+
 // Server-side API calls
 export {
   checkAuthServer,
@@ -9,4 +11,12 @@ export {
   registerServer,
   logoutServer,
   uploadAvatarServer,
+  getUserRooms,
+  createRoom,
+  getRoomMembers,
 } from './user.api.server';
+
+// Client-side API calls
+export {
+  checkAuthClient,
+} from './user.api.client';
