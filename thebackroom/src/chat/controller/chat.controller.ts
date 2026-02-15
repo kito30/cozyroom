@@ -81,6 +81,20 @@ export class ChatController {
     }
 
     /**
+     * Get members of a room
+     */
+    @Get('rooms/:roomId/members')
+    @UseGuards(AuthGuard)
+    async getRoomMembers(
+        @Req() req: AuthenticatedRequest,
+        @Param('roomId') roomId: string,
+    ) {
+        const token = req.cookies?.['access_token'] as string | undefined;
+        const members = await this.chatService.getRoomMembers(token, roomId);
+        return { members };
+    }
+
+    /**
      * Create a new room
      */
     @Post('rooms')

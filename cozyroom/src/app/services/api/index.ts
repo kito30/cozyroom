@@ -13,6 +13,7 @@ export {
   uploadAvatarServer,
   getUserRooms,
   createRoom,
+  getRoomMembers,
 } from './user.api.server';
 
 // Client-side API calls

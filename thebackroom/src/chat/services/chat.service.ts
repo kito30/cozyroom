@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createSupabaseClient } from 'src/utils/supabase/client';
-import type { ChatMessage, CreateChatMessage, Room } from '../types/chat';
+import type { ChatMessage, CreateChatMessage, Room, RoomMember } from '../types/chat';
 
 @Injectable()
 export class ChatService {
@@ -99,7 +99,7 @@ export class ChatService {
             return rows
                 .map((row: { room_id: string; rooms: Room | Room[] | null }) => {
                     const r = row.rooms;
-                    return Array.isArray(r) ?  null : r;
+                    return Array.isArray(r) ? r[0] ?? null : r;
                 })
                 .filter((room): room is Room => room != null);
         } catch (error) {
@@ -108,6 +108,41 @@ export class ChatService {
             }
 
             throw new InternalServerErrorException('An unexpected error occurred while fetching user rooms');
+        }
+    }
+
+    /**
+     * Get members of a room (user id, email, full_name, avatar_url from profiles)
+     */
+    async getRoomMembers(token: string | undefined, roomId: string): Promise<RoomMember[]> {
+        try {
+            const supabase = this.getClient(token);
+
+            const { data: members, error: membersError } = await supabase
+                .from('room_members')
+                .select('user_id')
+                .eq('room_id', roomId);
+
+            if (membersError || !members?.length) {
+                return [];
+            }
+
+            const userIds = members.map((m: { user_id: string }) => m.user_id);
+            const { data: profiles, error: profilesError } = await supabase
+                .from('profiles')
+                .select('id, email, full_name, avatar_url')
+                .in('id', userIds);
+
+            if (profilesError || !profiles?.length) {
+                return [];
+            }
+
+            return profiles as RoomMember[];
+        } catch (error) {
+            if (error instanceof InternalServerErrorException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch room members');
         }
     }
 
@@ -121,7 +156,7 @@ export class ChatService {
     ): Promise<Room> {
         try {
             const supabase = this.getClient(token);
-            console.log('Supabase Client:', supabase);
+
             // Create the room
             const roomResponse = await supabase
                 .from('rooms')

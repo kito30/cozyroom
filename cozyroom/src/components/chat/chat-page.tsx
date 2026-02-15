@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import ChatMessageList from './chat-message-list';
@@ -10,6 +10,7 @@ import type { ChatMessage, RoomMember } from '@/src/types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { useProfileOptional } from '@/src/providers/ProfileProvider';
+import { getRoomMembers } from '@/src/app/services/api';
 
 interface ChatPageProps {
   roomId: string;
@@ -18,9 +19,13 @@ interface ChatPageProps {
 
 export default function ChatPage({ roomId, roomName }: ChatPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [members, setMembers] = useState<RoomMember[]>([]);
   const { user } = useAuth();
   const profile = useProfileOptional();
-  const [members] = useState<RoomMember[]>([]);
+
+  useEffect(() => {
+    getRoomMembers(roomId).then(setMembers);
+  }, [roomId]);
 
   const senderName = profile?.full_name ?? (user?.user_metadata as { full_name?: string } | undefined)?.full_name ?? user?.email ?? 'Unknown';
   const senderAvatar = profile?.avatar_url ?? null;

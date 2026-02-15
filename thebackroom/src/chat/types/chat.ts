@@ -18,3 +18,10 @@ export interface Room {
     created_at: string;
 }
 
+export interface RoomMember {
+    id: string;
+    email: string;
+    full_name: string | null;
+    avatar_url?: string | null;
+}
+

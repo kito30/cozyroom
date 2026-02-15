@@ -2,7 +2,7 @@
 
 import { getApiUrl } from "@/src/config/api";
 import { cookies } from "next/headers";
-import type { ChatMessage, Profile, ProfileUpdatePayload, Room } from "@/src/types";
+import type { ChatMessage, Profile, ProfileUpdatePayload, Room, RoomMember } from "@/src/types";
 
 const getCookieHeader = async (): Promise<string> => {
     const cookieStore = await cookies();
@@ -152,6 +152,27 @@ export const uploadAvatarServer = async (
         return null;
     }
 }
+export const getRoomMembers = async (roomId: string): Promise<RoomMember[]> => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl(`chat/rooms/${roomId}/members`);
+        const res = await fetch(apiUrl, {
+            method: "GET",
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader
+            },
+            cache: 'no-store'
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        const members = (data.members ?? data) as RoomMember[] | undefined;
+        return Array.isArray(members) ? members : [];
+    } catch {
+        return [];
+    }
+};
+
 export const getMessages = async (roomId: string = 'room-1'): Promise<ChatMessage[]> => {
     const cookieHeader = await getCookieHeader();
     try {
