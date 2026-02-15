@@ -199,7 +199,7 @@ export const postMessage = async (roomId: string, content: string) => {
     }
 }
 
-export const getUserRooms = async (): Promise<string[]> => {
+export const getUserRooms = async (): Promise<Room[]> => {
     const cookieHeader = await getCookieHeader();
     try {
         const apiUrl = getApiUrl('chat/rooms');
@@ -217,8 +217,7 @@ export const getUserRooms = async (): Promise<string[]> => {
         }
 
         const data = await res.json();
-        // API returns array directly, not wrapped in object
-        return Array.isArray(data) ? data : [];
+        return Array.isArray(data) ? (data as Room[]) : [];
     } catch {
         return [];
     }

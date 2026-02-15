@@ -45,12 +45,12 @@ export default function ChatMessageList({ messages }: ChatMessageListProps) {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                msg.sender_name.charAt(0).toUpperCase()
+                (String(msg.sender_name ?? '?') || '?').charAt(0).toUpperCase()
               )}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">
-                <span className="font-semibold text-slate-200">{msg.sender_name}</span>
+                <span className="font-semibold text-slate-200">{msg.sender_name ?? 'Unknown'}</span>
                 <span className="text-xs text-slate-500" suppressHydrationWarning>
                   {formatTime(msg.created_at)}
                 </span>

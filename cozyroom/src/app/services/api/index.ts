@@ -11,6 +11,8 @@ export {
   registerServer,
   logoutServer,
   uploadAvatarServer,
+  getUserRooms,
+  createRoom,
 } from './user.api.server';
 
 // Client-side API calls

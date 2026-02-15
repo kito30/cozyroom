@@ -68,7 +68,7 @@ export class ChatController {
     }
 
     /**
-     * Get all room IDs that the current user is a member of
+     * Get all rooms that the current user is a member of
      */
     @Get('rooms')
     @UseGuards(AuthGuard)
@@ -76,8 +76,8 @@ export class ChatController {
         const token = req.cookies?.['access_token'] as string | undefined;
         const user = req.user;
 
-        const roomIds = await this.chatService.getUserRooms(token, user.id);
-        return roomIds;
+        const rooms = await this.chatService.getUserRooms(token, user.id);
+        return rooms;
     }
 
     /**

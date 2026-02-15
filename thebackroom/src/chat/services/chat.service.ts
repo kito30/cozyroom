@@ -77,27 +77,31 @@ export class ChatService {
     }
 
     /**
-     * Get all room IDs that the current user is a member of
+     * Get all rooms that the current user is a member of
      */
-    async getUserRooms(token: string | undefined, userId: string): Promise<string[]> {
+    async getUserRooms(token: string | undefined, userId: string): Promise<Room[]> {
         try {
             const supabase = this.getClient(token);
 
-            // Get room IDs from room_members table
-            const { data: members, error: membershipError } = await supabase
+            const { data: rows, error } = await supabase
                 .from('room_members')
-                .select('room_id')
+                .select('room_id, rooms(id, name, created_at)')
                 .eq('user_id', userId);
 
-            if (membershipError) {
+            if (error) {
                 throw new InternalServerErrorException('Failed to fetch user room memberships');
             }
 
-            if (!members || members.length === 0) {
+            if (!rows || rows.length === 0) {
                 return [];
             }
 
-            return members.map((member: { room_id: string }) => member.room_id);
+            return rows
+                .map((row: { room_id: string; rooms: Room | Room[] | null }) => {
+                    const r = row.rooms;
+                    return Array.isArray(r) ?  null : r;
+                })
+                .filter((room): room is Room => room != null);
         } catch (error) {
             if (error instanceof InternalServerErrorException) {
                 throw error;
@@ -117,7 +121,7 @@ export class ChatService {
     ): Promise<Room> {
         try {
             const supabase = this.getClient(token);
-
+            console.log('Supabase Client:', supabase);
             // Create the room
             const roomResponse = await supabase
                 .from('rooms')
