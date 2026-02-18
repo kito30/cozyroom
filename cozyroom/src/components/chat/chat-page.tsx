@@ -7,10 +7,12 @@ import ChatMessageList from './chat-message-list';
 import ChatInput from './chat-input';
 import ChatSidebar from './chat-sidebar';
 import type { ChatMessage, RoomMember } from '@/src/types';
-import { v4 as uuidv4 } from 'uuid';
+import { getMessages, postMessage, getRoomMembers } from '@/src/app/services/api/user.api.server';
+import { createSupabaseClient } from '@/src/components/supabase/client';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { useProfileOptional } from '@/src/providers/ProfileProvider';
-import { getRoomMembers } from '@/src/app/services/api';
+
+const supabase = createSupabaseClient();
 
 interface ChatPageProps {
   roomId: string;
@@ -23,29 +25,98 @@ export default function ChatPage({ roomId, roomName }: ChatPageProps) {
   const { user } = useAuth();
   const profile = useProfileOptional();
 
+  const senderName = profile?.full_name ?? 'Unknown';
+
+  const senderAvatar = profile?.avatar_url ?? null;
+
+  // Load initial room members
   useEffect(() => {
     getRoomMembers(roomId).then(setMembers);
-  }, [roomId]);
+  }, [roomId, senderName, senderAvatar, user?.id]);
 
-  const senderName = profile?.full_name ?? (user?.user_metadata as { full_name?: string } | undefined)?.full_name ?? user?.email ?? 'Unknown';
-  const senderAvatar = profile?.avatar_url ?? null;
+  // Load initial messages
+  useEffect(() => {
+    let active = true;
+
+    const loadChatHistory = async () => {
+      const initial = await getMessages(roomId);
+      // prevent overwriting messages
+      if (active) setMessages(initial);
+    };
+
+    loadChatHistory();
+    return () => { active = false; };
+  }, [roomId, senderName, senderAvatar, user?.id]);
+
+  // Subscribe to realtime inserts for this room
+  useEffect(() => {
+    const channel = supabase
+      .channel(`room-messages-${roomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload) => {
+          const row = payload.new as {
+            id: string;
+            room_id: string;
+            sender_id: string;
+            content: string;
+            created_at: string;
+          };
+
+          const isSelf = row.sender_id === user?.id;
+          const newMessage: ChatMessage = {
+            id: row.id,
+            room_id: row.room_id,
+            sender_id: row.sender_id,
+            content: row.content,
+            created_at: row.created_at,
+            sender_name: isSelf ? senderName : null,
+            sender_avatar: isSelf ? senderAvatar : null,
+          };
+          
+          setMessages((prev) =>
+            prev.some((m) => m.id === newMessage.id) ? prev : [...prev, newMessage]
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [roomId, senderName, senderAvatar, user?.id]);
 
   const displayRoomName = roomName ?? `Room ${roomId.slice(0, 8)}`;
 
   const handleSend = useCallback(
-    (content: string) => {
+    async (content: string) => {
+      const trimmed = content.trim();
+      if (!trimmed) return;
+
+      const created = await postMessage(roomId, trimmed);
+      if (!created) return;
+
       const newMessage: ChatMessage = {
-        id: uuidv4(),
-        room_id: roomId,
-        sender_id: user?.id ?? '',
-        content,
-        created_at: new Date().toISOString(),
+        id: created.id,
+        room_id: created.room_id,
+        sender_id: created.sender_id,
+        content: created.content,
+        created_at: created.created_at,
         sender_name: senderName,
         sender_avatar: senderAvatar,
       };
-      setMessages((prev) => [...prev, newMessage]);
+
+      setMessages((prev) =>
+        prev.some((m) => m.id === newMessage.id) ? prev : [...prev, newMessage]
+      );
     },
-    [user?.id, senderName, senderAvatar, roomId]
+    [roomId, senderName, senderAvatar]
   );
 
   return (
