@@ -4,6 +4,8 @@ export interface ChatMessage {
     sender_id: string;
     content: string;
     created_at: string;
+    sender_name?: string | null;
+    sender_avatar?: string | null;
 }
 
 export interface CreateChatMessage {

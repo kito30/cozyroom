@@ -9,8 +9,7 @@ export class ChatService {
     }
 
     /**
-     * Fetch chat messages from the database for a specific room.
-     * Assumes a `messages` table exists in Supabase.
+     * Fetch chat messages for a room, joined with sender profile (full_name, avatar_url).
      */
     async getMessages(token: string | undefined, limit = 50, roomId?: string): Promise<ChatMessage[]> {
         try {
@@ -18,23 +17,41 @@ export class ChatService {
 
             let query = supabase
                 .from('messages')
-                .select('*')
+                .select('*, profiles!sender_id(full_name, avatar_url)')
                 .order('created_at', { ascending: true })
                 .limit(limit);
 
-            // Filter by room_id if provided
             if (roomId) {
                 query = query.eq('room_id', roomId);
             }
 
-            const { data, error } = await query;
-
-            if (error) {
-                console.error('[ChatService.getMessages] Supabase error:', error);
+            const messagesResponse = await query;
+            if (messagesResponse.error) {
                 throw new InternalServerErrorException('Failed to fetch messages');
             }
 
-            return (data ?? []) as ChatMessage[];
+            const rows = messagesResponse.data as Array<{
+                id: string;
+                room_id: string;
+                sender_id: string;
+                content: string;
+                created_at: string;
+                profiles: { full_name: string | null; avatar_url: string | null } | null;
+            }>;
+
+            if (rows.length === 0) {
+                return [];
+            }
+
+            return rows.map((row) => ({
+                id: row.id,
+                room_id: row.room_id,
+                sender_id: row.sender_id,
+                content: row.content,
+                created_at: row.created_at,
+                sender_name: row.profiles?.full_name ?? null,
+                sender_avatar: row.profiles?.avatar_url ?? null,
+            })) as ChatMessage[];
         } catch (error) {
             if (error instanceof InternalServerErrorException) {
                 throw error;
@@ -45,7 +62,7 @@ export class ChatService {
     }
     
     /**
-     * Create a new chat message in the database.
+     * Create a new chat message in the database. Returns the message with sender_name and sender_avatar from profiles.
      */
     async createMessage(
         token: string | undefined,
@@ -66,7 +83,27 @@ export class ChatService {
                 );
             }
 
-            return response.data as ChatMessage;
+            const row = response.data as {
+                id: string;
+                room_id: string;
+                sender_id: string;
+                content: string;
+                created_at: string;
+            };
+
+            const profileRes = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url')
+                .eq('id', row.sender_id)
+                .single();
+
+            const profile = profileRes.data as { full_name: string | null; avatar_url: string | null } | null;
+
+            return {
+                ...row,
+                sender_name: profile?.full_name ?? null,
+                sender_avatar: profile?.avatar_url ?? null,
+            } as ChatMessage;
         } catch (error) {
             if (error instanceof InternalServerErrorException) {
                 throw error;
