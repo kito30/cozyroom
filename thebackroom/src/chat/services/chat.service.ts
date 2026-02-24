@@ -1,9 +1,11 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createSupabaseClient } from 'src/utils/supabase/client';
-import type { ChatMessage, CreateChatMessage, Room, RoomMember } from '../types/chat';
+import type { ChatMessage, CreateChatMessage, Room, RoomMember, RoomInvitation } from '../types/chat';
+import type { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class ChatService {
+
     private getClient(token?: string) {
         return createSupabaseClient(token);
     }
@@ -236,5 +238,65 @@ export class ChatService {
             throw new InternalServerErrorException('An unexpected error occurred while creating room');
         }
     }
+    async checkInviterIsMember(supabase , roomId: string, inviterId: string): Promise<boolean> {
+        const { data, error } = await supabase
+            .from('room_members')
+            .select('user_id')
+            .eq('room_id', roomId)
+            .eq('user_id', inviterId)
+            .maybeSingle();
+        if (error) return false;
+        if(data == null) return false;
+        return true;
+    }
+    async checkInviteeIsMember(supabase , roomId: string, inviteeId: string): Promise<boolean> {
+        const { data, error } = await supabase
+            .from('room_members')
+            .select('user_id')
+            .eq('room_id', roomId)
+            .eq('user_id', inviteeId)
+            .maybeSingle();
+        if (error) return false;
+        if(data == null) return false;
+        return true;
+    }
+    async createInvitation(
+        token: string,
+        roomId: string,
+        inviterId: string,
+        inviteeId: string,
+    ): Promise<RoomInvitation> {
+        try {
+            const supabase = this.getClient(token);
+            const isInviterMember:boolean = await this.checkInviterIsMember(supabase, roomId, inviterId);
+            if(isInviterMember){
+                throw new BadRequestException('Inviter is already a member of the room');
+            }
+            const isInviteeMember = await this.checkInviteeIsMember(supabase, roomId, inviteeId);
+            if(!isInviteeMember){
+                throw new BadRequestException('Invitee is not a member of the room');
+            }
+            const invitation = await supabase
+                .from('room_invitation')
+                .insert({
+                    room_id: roomId,
+                    inviter_id: inviterId,
+                    invitee_id: inviteeId,
+                    status: 'pending',
+                })
+                .select('*')
+                .single();
+            if(invitation.error) {
+                throw new InternalServerErrorException('Failed to create invitation');
+            }
+            return invitation.data as RoomInvitation;
+        } catch (error) {
+            if (error instanceof InternalServerErrorException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('An unexpected error occurred while creating invitation');
+        }
+    }
+    
 }
 

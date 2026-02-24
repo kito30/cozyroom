@@ -27,3 +27,11 @@ export interface RoomMember {
     avatar_url?: string | null;
 }
 
+export interface RoomInvitation {
+    id: string;
+    room_id: string;
+    inviter_id: string;
+    invitee_id: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    created_at: string;
+}
