@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createSupabaseClient } from 'src/utils/supabase/client';
 import type { ChatMessage, CreateChatMessage, Room, RoomMember, RoomInvitation } from '../types/chat';
-import type { BadRequestException } from '@nestjs/common';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class ChatService {
@@ -238,7 +238,11 @@ export class ChatService {
             throw new InternalServerErrorException('An unexpected error occurred while creating room');
         }
     }
-    async checkInviterIsMember(supabase , roomId: string, inviterId: string): Promise<boolean> {
+    async checkInviterIsMember(
+        supabase: SupabaseClient,
+        roomId: string,
+        inviterId: string,
+    ): Promise<boolean> {
         const { data, error } = await supabase
             .from('room_members')
             .select('user_id')
@@ -246,10 +250,14 @@ export class ChatService {
             .eq('user_id', inviterId)
             .maybeSingle();
         if (error) return false;
-        if(data == null) return false;
+        if (data == null) return false;
         return true;
     }
-    async checkInviteeIsMember(supabase , roomId: string, inviteeId: string): Promise<boolean> {
+    async checkInviteeIsMember(
+        supabase: SupabaseClient,
+        roomId: string,
+        inviteeId: string,
+    ): Promise<boolean> {
         const { data, error } = await supabase
             .from('room_members')
             .select('user_id')
@@ -297,6 +305,52 @@ export class ChatService {
             throw new InternalServerErrorException('An unexpected error occurred while creating invitation');
         }
     }
-    
+
+    async getInvitationCurrentUser(
+        token: string,
+        invitee_id: string,
+    ) {
+        try {
+            const supabase = this.getClient(token);
+            const invitations = await supabase
+                .from('room_invitation')
+                .select('*')
+                .eq('invitee_id', invitee_id);
+            if(invitations.error) {
+                throw new InternalServerErrorException('Failed to get invitations');
+            }
+            return invitations.data as RoomInvitation[];
+        }
+        catch (error) {
+            if (error instanceof InternalServerErrorException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('An unexpected error occurred while getting invitations');
+        }
+    }
+    async acceptInvitation(
+        token: string,
+        invitationId: string,
+    ): Promise<RoomInvitation> {
+        try {
+            const supabase = this.getClient(token);
+            const invitation = await supabase
+                .from('room_invitation')
+                .update({status: 'accepted'})
+                .eq('id', invitationId)
+                .select('*')
+                .single();
+            if(invitation.error) {
+                throw new InternalServerErrorException('Failed to accept invitation');
+            }
+            return invitation.data as RoomInvitation;
+        }
+        catch (error) {
+            if (error instanceof InternalServerErrorException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('An unexpected error occurred while accepting invitation');
+        }
+    }
 }
 
