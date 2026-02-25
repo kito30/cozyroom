@@ -276,14 +276,30 @@ export class ChatService {
     ): Promise<RoomInvitation> {
         try {
             const supabase = this.getClient(token);
-            const isInviterMember:boolean = await this.checkInviterIsMember(supabase, roomId, inviterId);
-            if(isInviterMember){
-                throw new BadRequestException('Inviter is already a member of the room');
+
+            const isInviterMember = await this.checkInviterIsMember(supabase, roomId, inviterId);
+            if (!isInviterMember) {
+                throw new BadRequestException('Inviter is not a member of the room');
             }
+
             const isInviteeMember = await this.checkInviteeIsMember(supabase, roomId, inviteeId);
-            if(!isInviteeMember){
-                throw new BadRequestException('Invitee is not a member of the room');
+            if (isInviteeMember) {
+                throw new BadRequestException('Invitee is already a member of the room');
             }
+
+            // Check if an invite has been sent or not
+            const { data: existing } = await supabase
+                .from('room_invitation')
+                .select('id')
+                .eq('room_id', roomId)
+                .eq('invitee_id', inviteeId)
+                .eq('status', 'pending')
+                .maybeSingle();
+
+            if (existing) {
+                throw new BadRequestException('A pending invitation already exists for this user');
+            }
+
             const invitation = await supabase
                 .from('room_invitation')
                 .insert({
@@ -294,12 +310,14 @@ export class ChatService {
                 })
                 .select('*')
                 .single();
-            if(invitation.error) {
+
+            if (invitation.error) {
                 throw new InternalServerErrorException('Failed to create invitation');
             }
+
             return invitation.data as RoomInvitation;
         } catch (error) {
-            if (error instanceof InternalServerErrorException) {
+            if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
                 throw error;
             }
             throw new InternalServerErrorException('An unexpected error occurred while creating invitation');
@@ -334,19 +352,48 @@ export class ChatService {
     ): Promise<RoomInvitation> {
         try {
             const supabase = this.getClient(token);
-            const invitation = await supabase
+
+            const fetchResponse = await supabase
                 .from('room_invitation')
-                .update({status: 'accepted'})
+                .select('*')
+                .eq('id', invitationId)
+                .eq('status', 'pending')
+                .maybeSingle();
+
+            if (fetchResponse.error) {
+                throw new InternalServerErrorException('Failed to fetch invitation');
+            }
+            if (!fetchResponse.data) {
+                throw new BadRequestException('Invitation not found or already resolved');
+            }
+            const existing = fetchResponse.data as RoomInvitation;
+
+            const updateResponse = await supabase
+                .from('room_invitation')
+                .update({ status: 'accepted' })
                 .eq('id', invitationId)
                 .select('*')
                 .single();
-            if(invitation.error) {
+
+            if (updateResponse.error || !updateResponse.data) {
                 throw new InternalServerErrorException('Failed to accept invitation');
             }
-            return invitation.data as RoomInvitation;
-        }
-        catch (error) {
-            if (error instanceof InternalServerErrorException) {
+            const updated = updateResponse.data as RoomInvitation;
+
+            const { error: memberError } = await supabase
+                .from('room_members')
+                .insert({
+                    room_id: existing.room_id,
+                    user_id: existing.invitee_id,
+                });
+
+            if (memberError) {
+                throw new InternalServerErrorException('Failed to add invitee to room members');
+            }
+
+            return updated;
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
                 throw error;
             }
             throw new InternalServerErrorException('An unexpected error occurred while accepting invitation');
