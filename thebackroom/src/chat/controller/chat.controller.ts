@@ -1,4 +1,7 @@
-import { Controller, Get, Post, Query, Req, Param, Body, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Query, Req, Param, Body, UseGuards, BadRequestException } from '@nestjs/common';
+
+const MESSAGES_DEFAULT_LIMIT = 50;
+const MESSAGES_MAX_LIMIT = 200;
 import type { Request } from 'express';
 import type { User } from '@supabase/supabase-js';
 import { ChatService } from '../services/chat.service';
@@ -27,15 +30,13 @@ export class ChatController {
         @Param('roomId') roomId: string,
         @Query('limit') limit?: string,
     ) {
-        const cap = 200;    
         const token = req.cookies?.['access_token'] as string | undefined;
 
         let numericLimit = Number(limit);
         if (Number.isNaN(numericLimit) || numericLimit <= 0) {
-            numericLimit = 50;
+            numericLimit = MESSAGES_DEFAULT_LIMIT;
         }
-        // Hard cap to prevent abuse
-        numericLimit = Math.min(numericLimit, cap);
+        numericLimit = Math.min(numericLimit, MESSAGES_MAX_LIMIT);
         const messages = await this.chatService.getMessages(token, numericLimit, roomId);
         return { messages };
     }
@@ -112,6 +113,54 @@ export class ChatController {
 
         const room = await this.chatService.createRoom(token, user.id, body.name.trim());
         return { room };
+    }
+    /**
+     * Send an invitation to a user to join a room.
+     * The authenticated user must already be a member of the room.
+     * Body: { inviteeId: string }
+     */
+    @Post('rooms/:roomId/invite')
+    @UseGuards(AuthGuard)
+    async createInvitation(
+        @Req() req: AuthenticatedRequest,
+        @Param('roomId') roomId: string,
+        @Body() body: { inviteeId: string },
+    ) {
+        const token = req.cookies?.['access_token'] as string;
+        const inviterId = req.user.id;
+
+        if (!body?.inviteeId || typeof body.inviteeId !== 'string') {
+            throw new BadRequestException('inviteeId is required');
+        }
+
+        const invitation = await this.chatService.createInvitation(token, roomId, inviterId, body.inviteeId);
+        return { invitation };
+    }
+
+    /**
+     * Get all pending invitations for the currently authenticated user.
+     */
+    @Get('invitations')
+    @UseGuards(AuthGuard)
+    async getMyInvitations(@Req() req: AuthenticatedRequest) {
+        const token = req.cookies?.['access_token'] as string;
+        const invitations = await this.chatService.getInvitationCurrentUser(token, req.user.id);
+        return { invitations };
+    }
+
+    /**
+     * Accept a pending invitation by its ID.
+     * The authenticated user must be the invitee.
+     */
+    @Patch('invitations/:invitationId/accept')
+    @UseGuards(AuthGuard)
+    async acceptInvitation(
+        @Req() req: AuthenticatedRequest,
+        @Param('invitationId') invitationId: string,
+    ) {
+        const token = req.cookies?.['access_token'] as string;
+        const invitation = await this.chatService.acceptInvitation(token, invitationId);
+        return { invitation };
     }
 }
 

@@ -3,6 +3,8 @@ import { createSupabaseClient } from 'src/utils/supabase/client';
 import type { ChatMessage, CreateChatMessage, Room, RoomMember, RoomInvitation } from '../types/chat';
 import { SupabaseClient } from '@supabase/supabase-js';
 
+const MESSAGES_DEFAULT_LIMIT = 50;
+
 @Injectable()
 export class ChatService {
 
@@ -13,7 +15,7 @@ export class ChatService {
     /**
      * Fetch chat messages for a room, joined with sender profile (full_name, avatar_url).
      */
-    async getMessages(token: string | undefined, limit = 50, roomId?: string): Promise<ChatMessage[]> {
+    async getMessages(token: string | undefined, limit = MESSAGES_DEFAULT_LIMIT, roomId?: string): Promise<ChatMessage[]> {
         try {
             const supabase = this.getClient(token);
 

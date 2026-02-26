@@ -1,4 +1,7 @@
-import { Body, Controller, Post, Get, Patch, Req, UseGuards, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Body, Controller, Post, Get, Patch, Query, Req, UseGuards, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
+
+const SEARCH_DEFAULT_LIMIT = 20;
+const SEARCH_MAX_LIMIT = 50;
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import type { User } from '@supabase/supabase-js';
@@ -157,6 +160,24 @@ export class UserController {
     constructor(
         private readonly userService: UserService
     ) {}
+
+    @Get('search')
+    @UseGuards(AuthGuard)
+    async searchUsers(
+        @Req() req: AuthenticatedRequest,
+        @Query('q') q: string,
+        @Query('limit') limit?: string,
+    ) {
+        if (!q || q.trim().length < 2) {
+            throw new BadRequestException('Query param "q" must be at least 2 characters');
+        }
+
+        const token = req.cookies['access_token'] as string;
+        const numericLimit = Math.min(Number(limit) || SEARCH_DEFAULT_LIMIT, SEARCH_MAX_LIMIT);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        const users = await (this.userService.searchUsers(token, String(q), numericLimit) as Promise<{ id: string; email: string; full_name: string | null; avatar_url: string | null }[]>);
+        return { users };
+    }
 
     @Get('me/profile')
     @UseGuards(AuthGuard)

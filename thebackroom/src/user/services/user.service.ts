@@ -3,6 +3,9 @@ import { Injectable, BadRequestException, UnauthorizedException, InternalServerE
 import { createSupabaseClient } from 'src/utils/supabase/client';
 import type { UserWithProfile, LoginResponse, SignUpResponse } from '../types/user';
 import { User } from '@supabase/supabase-js';
+
+const SEARCH_DEFAULT_LIMIT = 20;
+const SEARCH_MAX_LIMIT = 50;
 import {
     validateEmail,
     validatePassword,
@@ -260,6 +263,32 @@ export class UserService {
         }
 
         return response.data as UserWithProfile;
+    }
+
+    async searchUsers(
+        token: string,
+        query: string,
+        limit = SEARCH_DEFAULT_LIMIT,
+    ): Promise<UserWithProfile[]> {
+        if (!query || query.trim().length < 2) {
+            throw new BadRequestException('Search query must be at least 2 characters');
+        }
+
+        const term = query.trim();
+        const cap = Math.min(limit, SEARCH_MAX_LIMIT);
+
+        const { data, error } = await this.getClient(token)
+            .from('profiles')
+            .select('id, email, full_name, avatar_url')
+            .or(`full_name.ilike.%${term}%,email.ilike.%${term}%`)
+            .limit(cap);
+
+        if (error) {
+            console.error('[SearchUsers] Supabase error:', error);
+            throw new InternalServerErrorException('Failed to search users');
+        }
+
+        return (data ?? []) as UserWithProfile[];
     }
 
     async uploadAvatar(
