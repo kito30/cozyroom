@@ -1,4 +1,4 @@
-import type { ChatMessage, RoomMember } from '@/src/types';
+import type { ChatMessage, RoomMember, RoomInvitation } from '@/src/types';
 import type { User } from '@supabase/supabase-js';
 
 export interface UserSearchResult {
@@ -66,6 +66,33 @@ export const searchUsersClient = async (query: string, limit = 20): Promise<User
         return data.users ?? [];
     } catch {
         return [];
+    }
+};
+
+export const getInvitationsClient = async (): Promise<RoomInvitation[]> => {
+    try {
+        const res = await fetch('/api/chat/invitations', { credentials: 'include' });
+        if (!res.ok) return [];
+        const data = await res.json() as { invitations?: RoomInvitation[] };
+        return data.invitations ?? [];
+    } catch {
+        return [];
+    }
+};
+
+export const acceptInvitationClient = async (invitationId: string): Promise<{ ok: boolean; error?: string }> => {
+    try {
+        const res = await fetch(`/api/chat/invitations/${invitationId}/accept`, {
+            method: 'PATCH',
+            credentials: 'include',
+        });
+        const data = await res.json().catch(() => ({})) as { message?: string };
+        if (!res.ok) {
+            return { ok: false, error: data.message ?? 'Failed to accept invitation' };
+        }
+        return { ok: true };
+    } catch {
+        return { ok: false, error: 'Failed to accept invitation' };
     }
 };
 
