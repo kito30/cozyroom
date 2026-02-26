@@ -15,5 +15,12 @@ export async function GET(req: NextRequest) {
   });
 
   const data = await res.json().catch(() => ({ user: null }));
-  return NextResponse.json(data, { status: res.status });
+
+  const accessToken = req.cookies.get('access_token')?.value ?? null;
+  const refreshToken = req.cookies.get('refresh_token')?.value ?? null;
+
+  return NextResponse.json(
+    { ...data, access_token: accessToken, refresh_token: refreshToken },
+    { status: res.status },
+  );
 }

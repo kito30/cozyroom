@@ -7,14 +7,24 @@ export interface UserSearchResult {
     avatar_url: string | null;
 }
 
-export const checkAuthClient = async (): Promise<User | null> => {
+export interface AuthResult {
+    user: User | null;
+    access_token: string | null;
+    refresh_token: string | null;
+}
+
+export const checkAuthClient = async (): Promise<AuthResult> => {
     try {
         const res = await fetch('/api/auth/me', { credentials: 'include' });
-        if (!res.ok) return null;
-        const data = await res.json() as { user?: User };
-        return data.user ?? null;
+        if (!res.ok) return { user: null, access_token: null, refresh_token: null };
+        const data = await res.json() as { user?: User; access_token?: string; refresh_token?: string };
+        return {
+            user: data.user ?? null,
+            access_token: data.access_token ?? null,
+            refresh_token: data.refresh_token ?? null,
+        };
     } catch {
-        return null;
+        return { user: null, access_token: null, refresh_token: null };
     }
 };
 

@@ -24,11 +24,10 @@ export default function ChatPage({ roomId, roomName }: ChatPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, realtimeReady } = useAuth();
   const profile = useProfileOptional();
 
   const senderName = profile?.full_name ?? 'Unknown';
-
   const senderAvatar = profile?.avatar_url ?? null;
 
   // Load initial room members
@@ -50,8 +49,10 @@ export default function ChatPage({ roomId, roomName }: ChatPageProps) {
     return () => { active = false; };
   }, [roomId, senderName, senderAvatar, user?.id]);
 
-  // Subscribe to realtime inserts for this room
+  // Subscribe to realtime inserts for this room (only after auth session is set)
   useEffect(() => {
+    if (!realtimeReady) return;
+
     const channel = supabase
       .channel(`room-messages-${roomId}`)
       .on(
@@ -92,7 +93,7 @@ export default function ChatPage({ roomId, roomName }: ChatPageProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, senderName, senderAvatar, user?.id]);
+  }, [realtimeReady, roomId, senderName, senderAvatar, user?.id]);
 
   const displayRoomName = roomName ?? `Room ${roomId.slice(0, 8)}`;
 
