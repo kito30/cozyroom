@@ -45,14 +45,13 @@ export default function ChatSidebar({ roomName, members, onInvite }: ChatSidebar
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  (member.full_name || member.email).charAt(0).toUpperCase()
+                  (member.full_name || '?').charAt(0).toUpperCase()
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-slate-200 truncate">
                   {member.full_name || 'Anonymous'}
                 </p>
-                <p className="text-xs text-slate-500 truncate">{member.email}</p>
               </div>
             </li>
           ))}

@@ -21,8 +21,8 @@ export class ChatService {
 
             let query = supabase
                 .from('messages')
-                .select('*, profiles!sender_id(full_name, avatar_url)')
-                .order('created_at', { ascending: true })
+                .select('id, room_id, sender_id, content, created_at')
+                .order('created_at', { ascending: false })
                 .limit(limit);
 
             if (roomId) {
@@ -34,28 +34,40 @@ export class ChatService {
                 throw new InternalServerErrorException('Failed to fetch messages');
             }
 
-            const rows = messagesResponse.data as Array<{
+            const rows = (messagesResponse.data as Array<{
                 id: string;
                 room_id: string;
                 sender_id: string;
                 content: string;
                 created_at: string;
-                profiles: { full_name: string | null; avatar_url: string | null } | null;
-            }>;
+            }>).reverse();
 
             if (rows.length === 0) {
                 return [];
             }
 
-            return rows.map((row) => ({
-                id: row.id,
-                room_id: row.room_id,
-                sender_id: row.sender_id,
-                content: row.content,
-                created_at: row.created_at,
-                sender_name: row.profiles?.full_name ?? null,
-                sender_avatar: row.profiles?.avatar_url ?? null,
-            })) as ChatMessage[];
+            const senderIds = [...new Set(rows.map((r) => r.sender_id))];
+            const { data: profiles } = await supabase
+                .from('public_profiles')
+                .select('id, full_name, avatar_url')
+                .in('id', senderIds);
+
+            const profileMap = new Map(
+                (profiles ?? []).map((p: { id: string; full_name: string | null; avatar_url: string | null }) => [p.id, p]),
+            );
+
+            return rows.map((row) => {
+                const p = profileMap.get(row.sender_id);
+                return {
+                    id: row.id,
+                    room_id: row.room_id,
+                    sender_id: row.sender_id,
+                    content: row.content,
+                    created_at: row.created_at,
+                    sender_name: p?.full_name ?? null,
+                    sender_avatar: p?.avatar_url ?? null,
+                };
+            }) as ChatMessage[];
         } catch (error) {
             if (error instanceof InternalServerErrorException) {
                 throw error;
@@ -96,7 +108,7 @@ export class ChatService {
             };
 
             const profileRes = await supabase
-                .from('profiles')
+                .from('public_profiles')
                 .select('full_name, avatar_url')
                 .eq('id', row.sender_id)
                 .single();
@@ -153,7 +165,7 @@ export class ChatService {
     }
 
     /**
-     * Get members of a room (user id, email, full_name, avatar_url from profiles)
+     * Get members of a room (user id, full_name, avatar_url from public_profiles)
      */
     async getRoomMembers(token: string | undefined, roomId: string): Promise<RoomMember[]> {
         try {
@@ -170,8 +182,8 @@ export class ChatService {
 
             const userIds = members.map((m: { user_id: string }) => m.user_id);
             const { data: profiles, error: profilesError } = await supabase
-                .from('profiles')
-                .select('id, email, full_name, avatar_url')
+                .from('public_profiles')
+                .select('id, full_name, avatar_url')
                 .in('id', userIds);
 
             if (profilesError || !profiles?.length) {

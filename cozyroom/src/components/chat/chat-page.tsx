@@ -33,21 +33,16 @@ export default function ChatPage({ roomId, roomName }: ChatPageProps) {
   // Load initial room members
   useEffect(() => {
     getRoomMembersClient(roomId).then(setMembers);
-  }, [roomId, senderName, senderAvatar, user?.id]);
+  }, [roomId]);
 
   // Load initial messages
   useEffect(() => {
     let active = true;
-
-    const loadChatHistory = async () => {
-      const initial = await getMessagesClient(roomId);
-      // prevent overwriting messages
+    getMessagesClient(roomId).then((initial) => {
       if (active) setMessages(initial);
-    };
-
-    loadChatHistory();
+    });
     return () => { active = false; };
-  }, [roomId, senderName, senderAvatar, user?.id]);
+  }, [roomId]);
 
   // Subscribe to realtime inserts for this room (only after auth session is set)
   useEffect(() => {
@@ -72,20 +67,22 @@ export default function ChatPage({ roomId, roomName }: ChatPageProps) {
             created_at: string;
           };
 
-          const isSelf = row.sender_id === user?.id;
-          const newMessage: ChatMessage = {
-            id: row.id,
-            room_id: row.room_id,
-            sender_id: row.sender_id,
-            content: row.content,
-            created_at: row.created_at,
-            sender_name: isSelf ? senderName : null,
-            sender_avatar: isSelf ? senderAvatar : null,
-          };
-          
-          setMessages((prev) =>
-            prev.some((m) => m.id === newMessage.id) ? prev : [...prev, newMessage]
-          );
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === row.id)) return prev;
+
+            const isSelf = row.sender_id === user?.id;
+            const existing = prev.find((m) => m.sender_id === row.sender_id);
+
+            return [...prev, {
+              id: row.id,
+              room_id: row.room_id,
+              sender_id: row.sender_id,
+              content: row.content,
+              created_at: row.created_at,
+              sender_name: isSelf ? senderName : (existing?.sender_name ?? null),
+              sender_avatar: isSelf ? senderAvatar : (existing?.sender_avatar ?? null),
+            }];
+          });
         }
       )
       .subscribe();
