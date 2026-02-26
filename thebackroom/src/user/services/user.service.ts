@@ -278,9 +278,9 @@ export class UserService {
         const cap = Math.min(limit, SEARCH_MAX_LIMIT);
 
         const { data, error } = await this.getClient(token)
-            .from('profiles')
-            .select('id, email, full_name, avatar_url')
-            .or(`full_name.ilike.%${term}%,email.ilike.%${term}%`)
+            .from('public_profiles')
+            .select('id, full_name, avatar_url')
+            .ilike('full_name', `%${term}%`)
             .limit(cap);
 
         if (error) {

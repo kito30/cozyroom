@@ -265,3 +265,56 @@ export const createRoom = async (name: string): Promise<Room | null> => {
         return null;
     }
 }
+
+const SEARCH_DEFAULT_LIMIT = 20;
+
+export interface UserSearchResult {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+}
+
+export const searchUsers = async (query: string, limit = SEARCH_DEFAULT_LIMIT): Promise<UserSearchResult[]> => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl(`users/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+        const res = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader,
+            },
+            cache: 'no-store',
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return (data.users ?? []) as UserSearchResult[];
+    } catch (error) {
+        console.error('[searchUsers] Error:', error);
+        return [];
+    }
+};
+
+export const sendInvitation = async (roomId: string, inviteeId: string): Promise<{ ok: boolean; error?: string }> => {
+    const cookieHeader = await getCookieHeader();
+    try {
+        const apiUrl = getApiUrl(`chat/rooms/${roomId}/invite`);
+        const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: cookieHeader,
+            },
+            body: JSON.stringify({ inviteeId }),
+            cache: 'no-store',
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            return { ok: false, error: (data as { message?: string }).message ?? 'Failed to send invitation' };
+        }
+        return { ok: true };
+    } catch (error) {
+        console.error('[sendInvitation] Error:', error);
+        return { ok: false, error: 'Failed to send invitation' };
+    }
+};

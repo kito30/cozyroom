@@ -6,8 +6,9 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import ChatMessageList from './chat-message-list';
 import ChatInput from './chat-input';
 import ChatSidebar from './chat-sidebar';
+import InviteModal from './invite-modal';
 import type { ChatMessage, RoomMember } from '@/src/types';
-import { getMessages, postMessage, getRoomMembers } from '@/src/app/services/api/user.api.server';
+import { getMessagesClient, postMessageClient, getRoomMembersClient } from '@/src/app/services/api/user.api.client';
 import { createSupabaseClient } from '@/src/components/supabase/client';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { useProfileOptional } from '@/src/providers/ProfileProvider';
@@ -22,6 +23,7 @@ interface ChatPageProps {
 export default function ChatPage({ roomId, roomName }: ChatPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [members, setMembers] = useState<RoomMember[]>([]);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const { user } = useAuth();
   const profile = useProfileOptional();
 
@@ -31,7 +33,7 @@ export default function ChatPage({ roomId, roomName }: ChatPageProps) {
 
   // Load initial room members
   useEffect(() => {
-    getRoomMembers(roomId).then(setMembers);
+    getRoomMembersClient(roomId).then(setMembers);
   }, [roomId, senderName, senderAvatar, user?.id]);
 
   // Load initial messages
@@ -39,7 +41,7 @@ export default function ChatPage({ roomId, roomName }: ChatPageProps) {
     let active = true;
 
     const loadChatHistory = async () => {
-      const initial = await getMessages(roomId);
+      const initial = await getMessagesClient(roomId);
       // prevent overwriting messages
       if (active) setMessages(initial);
     };
@@ -99,7 +101,7 @@ export default function ChatPage({ roomId, roomName }: ChatPageProps) {
       const trimmed = content.trim();
       if (!trimmed) return;
 
-      const created = await postMessage(roomId, trimmed);
+      const created = await postMessageClient(roomId, trimmed);
       if (!created) return;
 
       const newMessage: ChatMessage = {
@@ -140,7 +142,12 @@ export default function ChatPage({ roomId, roomName }: ChatPageProps) {
       </div>
 
       {/* Right sidebar - users in room */}
-      <ChatSidebar roomName={displayRoomName} members={members} />
+      <ChatSidebar roomName={displayRoomName} members={members} onInvite={() => setInviteOpen(true)} />
+
+      {/* Invite modal */}
+      {inviteOpen && (
+        <InviteModal roomId={roomId} onClose={() => setInviteOpen(false)} />
+      )}
     </div>
   );
 }

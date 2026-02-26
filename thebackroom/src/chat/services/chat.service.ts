@@ -291,7 +291,7 @@ export class ChatService {
 
             // Check if an invite has been sent or not
             const { data: existing } = await supabase
-                .from('room_invitation')
+                .from('room_invitations')
                 .select('id')
                 .eq('room_id', roomId)
                 .eq('invitee_id', inviteeId)
@@ -303,7 +303,7 @@ export class ChatService {
             }
 
             const invitation = await supabase
-                .from('room_invitation')
+                .from('room_invitations')
                 .insert({
                     room_id: roomId,
                     inviter_id: inviterId,
@@ -314,6 +314,7 @@ export class ChatService {
                 .single();
 
             if (invitation.error) {
+                console.error('[ChatService.createInvitation] Supabase error:', invitation.error);
                 throw new InternalServerErrorException('Failed to create invitation');
             }
 
@@ -333,7 +334,7 @@ export class ChatService {
         try {
             const supabase = this.getClient(token);
             const invitations = await supabase
-                .from('room_invitation')
+                .from('room_invitations')
                 .select('*')
                 .eq('invitee_id', invitee_id);
             if(invitations.error) {
@@ -356,7 +357,7 @@ export class ChatService {
             const supabase = this.getClient(token);
 
             const fetchResponse = await supabase
-                .from('room_invitation')
+                .from('room_invitations')
                 .select('*')
                 .eq('id', invitationId)
                 .eq('status', 'pending')
@@ -371,7 +372,7 @@ export class ChatService {
             const existing = fetchResponse.data as RoomInvitation;
 
             const updateResponse = await supabase
-                .from('room_invitation')
+                .from('room_invitations')
                 .update({ status: 'accepted' })
                 .eq('id', invitationId)
                 .select('*')

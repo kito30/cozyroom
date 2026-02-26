@@ -174,8 +174,7 @@ export class UserController {
 
         const token = req.cookies['access_token'] as string;
         const numericLimit = Math.min(Number(limit) || SEARCH_DEFAULT_LIMIT, SEARCH_MAX_LIMIT);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        const users = await (this.userService.searchUsers(token, String(q), numericLimit) as Promise<{ id: string; email: string; full_name: string | null; avatar_url: string | null }[]>);
+        const users = await this.userService.searchUsers(token, String(q), numericLimit);
         return { users };
     }
 

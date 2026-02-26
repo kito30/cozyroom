@@ -2,12 +2,12 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
-import { checkAuthServer } from "@/src/app/services/api/user.api.server";
+import { checkAuthClient } from "@/src/app/services/api/user.api.client";
 
 interface AuthContextType {
     user: User | null;
     setUser: (user: User | null) => void;
-    token: string | null; // Token is stored in httpOnly cookies, not accessible client-side
+    token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,13 +21,10 @@ export function AuthProvider({children, initialUser}: {children: ReactNode, init
     
     useEffect(() => {
         const checkAuth = async () => {
-            const user = await checkAuthServer();
-            setUser(user);
+            const u = await checkAuthClient();
+            setUser(u);
         }
 
-        // Check auth on mount and when pathname changes
-        // Middleware handles token refresh and validation on every request
-        // No need for polling - auth state updates when user navigates
         checkAuth();
     }, []);
     
