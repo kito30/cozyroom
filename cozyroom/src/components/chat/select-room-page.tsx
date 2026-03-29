@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { getUserRooms, createRoom } from '@/src/app/services/api';
 import type { Room } from '@/src/types';
+import InvitationsPanel from './invitations-panel';
 
 export default function SelectRoomPage() {
   const router = useRouter();
@@ -63,6 +64,10 @@ export default function SelectRoomPage() {
               Choose an existing room or create a new one
             </p>
           </div>
+        </div>
+
+        <div className="mb-6">
+          <InvitationsPanel />
         </div>
 
         <form onSubmit={handleCreateRoom} className="mb-8">

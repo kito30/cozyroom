@@ -14,6 +14,8 @@ export {
   getUserRooms,
   createRoom,
   getRoomMembers,
+  getMessages,
+  postMessage,
 } from './user.api.server';
 
 // Client-side API calls

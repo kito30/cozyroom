@@ -1,15 +1,16 @@
 'use client';
 
 import Image from 'next/image';
-import { UserGroupIcon } from '@heroicons/react/24/outline';
+import { UserGroupIcon, UserPlusIcon } from '@heroicons/react/24/outline';
 import type { RoomMember } from '@/src/types';
 
 interface ChatSidebarProps {
   roomName: string;
   members: RoomMember[];
+  onInvite: () => void;
 }
 
-export default function ChatSidebar({ roomName, members }: ChatSidebarProps) {
+export default function ChatSidebar({ roomName, members, onInvite }: ChatSidebarProps) {
   return (
     <aside className="w-64 shrink-0 border-l border-slate-800/70 bg-slate-950/50 backdrop-blur flex flex-col">
       {/* Room name */}
@@ -44,18 +45,28 @@ export default function ChatSidebar({ roomName, members }: ChatSidebarProps) {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  (member.full_name || member.email).charAt(0).toUpperCase()
+                  (member.full_name || '?').charAt(0).toUpperCase()
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-slate-200 truncate">
                   {member.full_name || 'Anonymous'}
                 </p>
-                <p className="text-xs text-slate-500 truncate">{member.email}</p>
               </div>
             </li>
           ))}
         </ul>
+      </div>
+
+      {/* Invite button */}
+      <div className="p-3 border-t border-slate-800/70 shrink-0">
+        <button
+          onClick={onInvite}
+          className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition"
+        >
+          <UserPlusIcon className="w-4 h-4" />
+          Invite someone
+        </button>
       </div>
     </aside>
   );

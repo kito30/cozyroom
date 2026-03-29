@@ -1,40 +1,73 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createSupabaseClient } from 'src/utils/supabase/client';
-import type { ChatMessage, CreateChatMessage, Room, RoomMember } from '../types/chat';
+import type { ChatMessage, CreateChatMessage, Room, RoomMember, RoomInvitation } from '../types/chat';
+import { SupabaseClient } from '@supabase/supabase-js';
+
+const MESSAGES_DEFAULT_LIMIT = 50;
 
 @Injectable()
 export class ChatService {
+
     private getClient(token?: string) {
         return createSupabaseClient(token);
     }
 
     /**
-     * Fetch chat messages from the database for a specific room.
-     * Assumes a `messages` table exists in Supabase.
+     * Fetch chat messages for a room, joined with sender profile (full_name, avatar_url).
      */
-    async getMessages(token: string | undefined, limit = 50, roomId?: string): Promise<ChatMessage[]> {
+    async getMessages(token: string | undefined, limit = MESSAGES_DEFAULT_LIMIT, roomId?: string): Promise<ChatMessage[]> {
         try {
             const supabase = this.getClient(token);
 
             let query = supabase
                 .from('messages')
-                .select('*')
-                .order('created_at', { ascending: true })
+                .select('id, room_id, sender_id, content, created_at')
+                .order('created_at', { ascending: false })
                 .limit(limit);
 
-            // Filter by room_id if provided
             if (roomId) {
                 query = query.eq('room_id', roomId);
             }
 
-            const { data, error } = await query;
-
-            if (error) {
-                console.error('[ChatService.getMessages] Supabase error:', error);
+            const messagesResponse = await query;
+            if (messagesResponse.error) {
                 throw new InternalServerErrorException('Failed to fetch messages');
             }
 
-            return (data ?? []) as ChatMessage[];
+            const rows = (messagesResponse.data as Array<{
+                id: string;
+                room_id: string;
+                sender_id: string;
+                content: string;
+                created_at: string;
+            }>).reverse();
+
+            if (rows.length === 0) {
+                return [];
+            }
+
+            const senderIds = [...new Set(rows.map((r) => r.sender_id))];
+            const { data: profiles } = await supabase
+                .from('public_profiles')
+                .select('id, full_name, avatar_url')
+                .in('id', senderIds);
+
+            const profileMap = new Map(
+                (profiles ?? []).map((p: { id: string; full_name: string | null; avatar_url: string | null }) => [p.id, p]),
+            );
+
+            return rows.map((row) => {
+                const p = profileMap.get(row.sender_id);
+                return {
+                    id: row.id,
+                    room_id: row.room_id,
+                    sender_id: row.sender_id,
+                    content: row.content,
+                    created_at: row.created_at,
+                    sender_name: p?.full_name ?? null,
+                    sender_avatar: p?.avatar_url ?? null,
+                };
+            }) as ChatMessage[];
         } catch (error) {
             if (error instanceof InternalServerErrorException) {
                 throw error;
@@ -45,7 +78,7 @@ export class ChatService {
     }
     
     /**
-     * Create a new chat message in the database.
+     * Create a new chat message in the database. Returns the message with sender_name and sender_avatar from profiles.
      */
     async createMessage(
         token: string | undefined,
@@ -66,7 +99,27 @@ export class ChatService {
                 );
             }
 
-            return response.data as ChatMessage;
+            const row = response.data as {
+                id: string;
+                room_id: string;
+                sender_id: string;
+                content: string;
+                created_at: string;
+            };
+
+            const profileRes = await supabase
+                .from('public_profiles')
+                .select('full_name, avatar_url')
+                .eq('id', row.sender_id)
+                .single();
+
+            const profile = profileRes.data as { full_name: string | null; avatar_url: string | null } | null;
+
+            return {
+                ...row,
+                sender_name: profile?.full_name ?? null,
+                sender_avatar: profile?.avatar_url ?? null,
+            } as ChatMessage;
         } catch (error) {
             if (error instanceof InternalServerErrorException) {
                 throw error;
@@ -112,7 +165,7 @@ export class ChatService {
     }
 
     /**
-     * Get members of a room (user id, email, full_name, avatar_url from profiles)
+     * Get members of a room (user id, full_name, avatar_url from public_profiles)
      */
     async getRoomMembers(token: string | undefined, roomId: string): Promise<RoomMember[]> {
         try {
@@ -129,8 +182,8 @@ export class ChatService {
 
             const userIds = members.map((m: { user_id: string }) => m.user_id);
             const { data: profiles, error: profilesError } = await supabase
-                .from('profiles')
-                .select('id, email, full_name, avatar_url')
+                .from('public_profiles')
+                .select('id, full_name, avatar_url')
                 .in('id', userIds);
 
             if (profilesError || !profiles?.length) {
@@ -197,6 +250,168 @@ export class ChatService {
 
             console.error('[ChatService.createRoom] Unexpected error:', error);
             throw new InternalServerErrorException('An unexpected error occurred while creating room');
+        }
+    }
+    async checkInviterIsMember(
+        supabase: SupabaseClient,
+        roomId: string,
+        inviterId: string,
+    ): Promise<boolean> {
+        const { data, error } = await supabase
+            .from('room_members')
+            .select('user_id')
+            .eq('room_id', roomId)
+            .eq('user_id', inviterId)
+            .maybeSingle();
+        if (error) return false;
+        if (data == null) return false;
+        return true;
+    }
+    async checkInviteeIsMember(
+        supabase: SupabaseClient,
+        roomId: string,
+        inviteeId: string,
+    ): Promise<boolean> {
+        const { data, error } = await supabase
+            .from('room_members')
+            .select('user_id')
+            .eq('room_id', roomId)
+            .eq('user_id', inviteeId)
+            .maybeSingle();
+        if (error) return false;
+        if(data == null) return false;
+        return true;
+    }
+    async createInvitation(
+        token: string,
+        roomId: string,
+        inviterId: string,
+        inviteeId: string,
+    ): Promise<RoomInvitation> {
+        try {
+            const supabase = this.getClient(token);
+
+            const isInviterMember = await this.checkInviterIsMember(supabase, roomId, inviterId);
+            if (!isInviterMember) {
+                throw new BadRequestException('Inviter is not a member of the room');
+            }
+
+            const isInviteeMember = await this.checkInviteeIsMember(supabase, roomId, inviteeId);
+            if (isInviteeMember) {
+                throw new BadRequestException('Invitee is already a member of the room');
+            }
+
+            // Check if an invite has been sent or not
+            const { data: existing } = await supabase
+                .from('room_invitations')
+                .select('id')
+                .eq('room_id', roomId)
+                .eq('invitee_id', inviteeId)
+                .eq('status', 'pending')
+                .maybeSingle();
+
+            if (existing) {
+                throw new BadRequestException('A pending invitation already exists for this user');
+            }
+
+            const invitation = await supabase
+                .from('room_invitations')
+                .insert({
+                    room_id: roomId,
+                    inviter_id: inviterId,
+                    invitee_id: inviteeId,
+                    status: 'pending',
+                })
+                .select('*')
+                .single();
+
+            if (invitation.error) {
+                console.error('[ChatService.createInvitation] Supabase error:', invitation.error);
+                throw new InternalServerErrorException('Failed to create invitation');
+            }
+
+            return invitation.data as RoomInvitation;
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('An unexpected error occurred while creating invitation');
+        }
+    }
+
+    async getInvitationCurrentUser(
+        token: string,
+        invitee_id: string,
+    ) {
+        try {
+            const supabase = this.getClient(token);
+            const invitations = await supabase
+                .from('room_invitations')
+                .select('*')
+                .eq('invitee_id', invitee_id);
+            if(invitations.error) {
+                throw new InternalServerErrorException('Failed to get invitations');
+            }
+            return invitations.data as RoomInvitation[];
+        }
+        catch (error) {
+            if (error instanceof InternalServerErrorException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('An unexpected error occurred while getting invitations');
+        }
+    }
+    async acceptInvitation(
+        token: string,
+        invitationId: string,
+    ): Promise<RoomInvitation> {
+        try {
+            const supabase = this.getClient(token);
+
+            const fetchResponse = await supabase
+                .from('room_invitations')
+                .select('*')
+                .eq('id', invitationId)
+                .eq('status', 'pending')
+                .maybeSingle();
+
+            if (fetchResponse.error) {
+                throw new InternalServerErrorException('Failed to fetch invitation');
+            }
+            if (!fetchResponse.data) {
+                throw new BadRequestException('Invitation not found or already resolved');
+            }
+            const existing = fetchResponse.data as RoomInvitation;
+
+            const updateResponse = await supabase
+                .from('room_invitations')
+                .update({ status: 'accepted' })
+                .eq('id', invitationId)
+                .select('*')
+                .single();
+
+            if (updateResponse.error || !updateResponse.data) {
+                throw new InternalServerErrorException('Failed to accept invitation');
+            }
+            const updated = updateResponse.data as RoomInvitation;
+
+            const { error: memberError } = await supabase
+                .from('room_members')
+                .insert({
+                    room_id: existing.room_id,
+                    user_id: existing.invitee_id,
+                });
+
+            if (memberError) {
+                throw new InternalServerErrorException('Failed to add invitee to room members');
+            }
+
+            return updated;
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('An unexpected error occurred while accepting invitation');
         }
     }
 }

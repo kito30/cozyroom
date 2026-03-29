@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import AuthStatus from "@/src/components/AuthStatus";
+import NavInvitationBell from "@/src/components/NavInvitationBell";
 
 function AuthStatusFallback() {
     return <div className="h-9 w-20 animate-pulse rounded-lg bg-slate-800/50" />;
@@ -37,6 +38,8 @@ export default function Nav() {
                     >
                         Chat
                     </Link>
+
+                    <NavInvitationBell />
 
                     <Suspense fallback={<AuthStatusFallback />}>
                         <AuthStatus />
